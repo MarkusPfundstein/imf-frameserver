@@ -40,9 +40,6 @@
 
 #include <openjpeg-2.3/openjpeg.h>
 
-typedef void (*on_image_buf_func_t) (int, int);
-
-extern int image_to_buf(opj_image_t *image, on_image_buf_func_t on_image_buf_func);
 extern int image_to_fd(opj_image_t *image, int fd);
 
 #endif

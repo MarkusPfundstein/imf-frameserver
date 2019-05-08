@@ -250,14 +250,7 @@ int on_frame_data(
         ok = 0;
         goto free_and_out;
       }
-    } else {
-      int err = image_to_buf(image, NULL);
-      if (err) {
-        fprintf(stderr, "error image_to_buf [frame: %d]\n", current_frame);
-        ok = 0;
-        goto free_and_out;
-      }
-    }
+    } 
 
     fprintf(stderr, "[on_frame] processed frame %d, %d bytes\n", current_frame, frame_size);
 
@@ -285,7 +278,6 @@ int main(int argc, char **argv) {
   parameters.num_threads = opj_get_num_cpus();
   parameters.print_debug = 0;
   parameters.out_fd = STDOUT_FILENO;
-  //parameters.out_fd = -1;
 
   int err = read_frames(STDIN_FILENO, MAX_BUF, on_frame_data, &parameters);
   if (err) {
