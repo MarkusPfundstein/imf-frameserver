@@ -1,11 +1,14 @@
-LIBS=-lopenjp2
-OBJS=main.o
+all : main.o color.o convert.o
+		gcc -o imf_fs main.o color.o convert.o -lopenjp2 
 
-all : main.o
-		gcc -o imf_fs ${OBJS} ${LIBS}
+convert.o : convert.c
+		gcc -c convert.c
+
+color.o : color.c
+		gcc -c color.c
 
 main.o : main.c
 		gcc -c main.c
 
 clean : 
-		rm imf_fs
+		rm imf_fs *.o

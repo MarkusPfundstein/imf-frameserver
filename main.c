@@ -3,22 +3,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <openjpeg-2.3/openjpeg.h>
-
-typedef enum opj_prec_mode {
-    OPJ_PREC_MODE_CLIP,
-    OPJ_PREC_MODE_SCALE
-} opj_precision_mode;
-
-typedef struct opj_prec {
-    OPJ_UINT32         prec;
-    opj_precision_mode mode;
-} opj_precision;
+#include "color.h"
+#include "convert.h"
 
 typedef struct {
   void *user_data;
   //opj_dparameters_t core;
   int num_threads;
   int print_debug;
+  int out_fd;
 } decoding_parameters_t;
 
 // 1 MB read buf
@@ -211,7 +204,7 @@ int on_frame_data(
 
     ok = opj_set_decode_area(codec, image, 0, 0, 0, 0);
     if (!ok) {
-      fprintf(stderr, "failed to set decode area [frame: %d\n", current_frame);
+      fprintf(stderr, "failed to set decode area [frame: %d]\n", current_frame);
       goto free_and_out;
     }
 
@@ -220,18 +213,18 @@ int on_frame_data(
         stream,
         image);
     if (!ok) {
-      fprintf(stderr, "failed on decoding image [frame: %d\n", current_frame);
+      fprintf(stderr, "failed on decoding image [frame: %d]\n", current_frame);
       goto free_and_out;
     }
 
     ok = opj_end_decompress(codec, stream);
     if (!ok) {
-      fprintf(stderr, "failed on end decompress [frame: %d\n", current_frame);
+      fprintf(stderr, "failed on end decompress [frame: %d]\n", current_frame);
       goto free_and_out;
     }
 
     if (image->comps[0].data == NULL) {
-      fprintf(stderr, "error getting image [frame: %d\n", current_frame);
+      fprintf(stderr, "error getting image [frame: %d]\n", current_frame);
       ok = 0;
       goto free_and_out;
     }
@@ -242,11 +235,29 @@ int on_frame_data(
         && image->numcomps == 3
         && image->comps[0].dx == image->comps[0].dy
         && image->comps[1].dx != 1) {
-      //fprintf(stderr, "[on_frame] sYCC image [%d]\n", current_frame);
       image->color_space = OPJ_CLRSPC_SYCC;
-      //color_sycc_to_rbg(image);
+      ok = color_sycc_to_rgb(image);
+      if (!ok) {
+        fprintf(stderr, "error converting sycc to rgb [frame: %d]\n", current_frame);
+        goto free_and_out;
+      }
     }
 
+    if (parameters->out_fd >= 0) {
+      int err = image_to_fd(image, parameters->out_fd); 
+      if (err) {
+        fprintf(stderr, "error image_to_fd [frame: %d]\n", current_frame);
+        ok = 0;
+        goto free_and_out;
+      }
+    } else {
+      int err = image_to_buf(image, NULL);
+      if (err) {
+        fprintf(stderr, "error image_to_buf [frame: %d]\n", current_frame);
+        ok = 0;
+        goto free_and_out;
+      }
+    }
 
     fprintf(stderr, "[on_frame] processed frame %d, %d bytes\n", current_frame, frame_size);
 
@@ -272,7 +283,9 @@ int main(int argc, char **argv) {
 
   parameters.user_data = &core;
   parameters.num_threads = opj_get_num_cpus();
-  parameters.print_debug = 1;
+  parameters.print_debug = 0;
+  parameters.out_fd = STDOUT_FILENO;
+  //parameters.out_fd = -1;
 
   int err = read_frames(STDIN_FILENO, MAX_BUF, on_frame_data, &parameters);
   if (err) {
