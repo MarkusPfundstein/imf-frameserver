@@ -16,8 +16,8 @@ pthread_mutex_t decoding_mutex;
 pthread_mutex_t writeout_mutex;
 
 void SIGINT_handler(int dummy) {
-    keep_running = 0;
-    signal(SIGINT, 0);
+  keep_running = 0;
+  signal(SIGINT, 0);
 }
 
 typedef struct {
@@ -289,10 +289,10 @@ void *decode_frames_consumer(void *thread_data) {
       keep_running = 0;
     } else {
       int err = decode_frame(
-          decoding_queue_context->frame_buf,
-          decoding_queue_context->frame_size,
-          decoding_queue_context->current_frame,
-          decoding_queue_context->parameters);
+        decoding_queue_context->frame_buf,
+        decoding_queue_context->frame_size,
+        decoding_queue_context->current_frame,
+        decoding_queue_context->parameters);
       if (err) {
         keep_running = 0;
       }
