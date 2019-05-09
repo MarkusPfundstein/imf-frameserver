@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <signal.h>
+#include "asdcp.h"
 #include "color.h"
 #include "io.h"
 #include "linked_list.h"
@@ -45,8 +46,8 @@ typedef struct {
 static linked_list_t *decoding_queue_s = NULL;
 static linked_list_t *writeout_queue_s = NULL;
 
-// 1 MB read buf
-#define MAX_BUF 1048576 
+// 5 MB read buf
+#define MAX_BUF 5*1048576 
 
 void error_callback(const char *msg, void *client_data)
 {
@@ -260,6 +261,7 @@ void *writeout_frames_consumer(void *thread_data) {
         int err = image_to_fd(writeout_queue_context->image, writeout_queue_context->parameters->out_fd); 
         if (err) {
           fprintf(stderr, "error image_to_fd [frame: %d]\n", writeout_queue_context->current_frame);
+          keep_running = 0;
         }
       }
 
@@ -306,6 +308,7 @@ void *decode_frames_consumer(void *thread_data) {
 }
 
 int main(int argc, char **argv) {
+
   signal(SIGINT, SIGINT_handler);
 
   pthread_t decoding_queue_thread_id;
@@ -335,7 +338,7 @@ int main(int argc, char **argv) {
   parameters.out_fd = STDOUT_FILENO;
   parameters.decode_frame_buffer_size = 100;
 
-  int err = read_frames(STDIN_FILENO, MAX_BUF, on_frame_data_mt, &parameters);
+  int err = asdcp_read_mxf(argv[1], &parameters, on_frame_data_mt);
   if (err) {
     fprintf(stderr, "error\n");
   }
