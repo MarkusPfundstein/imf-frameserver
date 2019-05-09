@@ -1,0 +1,3 @@
+*.o
+imf_fs
+openjpeg/build

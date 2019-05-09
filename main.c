@@ -252,7 +252,9 @@ int on_frame_data(
       }
     }
 
-    fprintf(stderr, "[on_frame] processed frame %d, %d bytes\n", current_frame, frame_size);
+    if (parameters->print_debug) {
+      fprintf(stderr, "[on_frame] processed frame %d, %d bytes\n", current_frame, frame_size);
+    }
 
 free_and_out:
     if (image) {
