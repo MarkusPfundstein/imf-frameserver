@@ -53,6 +53,7 @@ int image_to_fd(opj_image_t *image, int fd)
     unsigned char vals[2];
   } uc16;
 
+  // TO-DO: get out_buf from outside this function and cache it 
   unsigned int frame_size = w * h * image->numcomps * 2;
   unsigned char *out_buf = (unsigned char*)malloc(frame_size);
   int out_buf_pos = 0;

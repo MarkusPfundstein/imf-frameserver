@@ -250,7 +250,7 @@ int on_frame_data(
         ok = 0;
         goto free_and_out;
       }
-    } 
+    }
 
     fprintf(stderr, "[on_frame] processed frame %d, %d bytes\n", current_frame, frame_size);
 
