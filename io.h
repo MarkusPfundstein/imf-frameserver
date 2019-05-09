@@ -35,11 +35,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _CONVERT_H_
-#define _CONVERT_H_
+#ifndef _IO_H_
+#define _IO_H_
 
 #include <openjpeg-2.3/openjpeg.h>
 
+typedef int (*on_frame_buf_func_t)(unsigned char* frame_buf, unsigned int frame_size, unsigned int current_frame, void *parameters);
+
 extern int image_to_fd(opj_image_t *image, int fd);
+extern int read_frames(int fd, unsigned int read_buf_size, on_frame_buf_func_t on_frame_buf_func, void *user_data);
+
 
 #endif
