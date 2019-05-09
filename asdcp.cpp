@@ -107,35 +107,10 @@ Result_t read_JP2K_file(const char *filename, void *user_data, asdcp_on_j2k_fram
       if (err) {
         break;
       }
-      /*
-      std::string size = std::to_string(FrameBuffer.Size()) + "\n";
-
-      int written = write(STDOUT_FILENO, size.c_str(), size.length());
-      if (written != size.length())
-      {
-        fprintf(stderr, "error writing frame buf size\n");
-      } 
-      else 
-      {
-        byte_t *buf = FrameBuffer.Data();
-        int buf_pos = 0;
-        while (true)
-        {
-          written = write(STDOUT_FILENO, buf + buf_pos, FrameBuffer.Size() - buf_pos);
-          if (written <= 0)
-          {
-            if (written < 0)
-            {
-              fprintf(stderr, "error on write\n");
-            }
-            break;
-          }
-          buf_pos += written;
-        }
-      }
-      */
     }
   } 
+  // tell we are done here
+  on_frame(NULL, 0, last_frame, user_data);
 
   return result;
 }

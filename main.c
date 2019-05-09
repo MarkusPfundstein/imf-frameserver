@@ -79,7 +79,6 @@ int on_frame_data_mt(
     void *user_data)
 {
   decoding_parameters_t *parameters = user_data;
-  int wait = 1;
   do {
     pthread_mutex_lock(&decoding_mutex);
     int frames_buffered = ll_len(decoding_queue_s);
@@ -87,9 +86,9 @@ int on_frame_data_mt(
     if (frames_buffered > parameters->decode_frame_buffer_size) {
       usleep(500);
     } else {
-      wait = 0;
+      break;
     }
-  } while (wait);
+  } while (1);
 
   decoding_queue_context_t *decoding_queue_context = (decoding_queue_context_t *)malloc(sizeof(decoding_queue_context_t));
 
