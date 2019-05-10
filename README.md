@@ -2,7 +2,11 @@ WIP project for IMF Frameserver
 
 Goals: parse interoperable master format CPL & OPL and serve jpeg2000 frames transformed by OPL macros
 
-Uses fork of asdcplib: https://github.com/MarkusPfundstein/asdcplib
-Uses fork of openjpeg: https://github.com/MarkusPfundstein/openjpeg
+*Install*
+(Ubuntu (WSL) & OSX)
+- install libtool, automake, autoconf, cmake
+- run sh install-deps.sh
+- run make
 
-Test decoding of IMF mxf -> run test.sh
+*Run it*
+see test.sh for how to pipe video into ffmpeg
