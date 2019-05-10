@@ -333,6 +333,7 @@ int main(int argc, char **argv) {
 
   parameters.user_data = &core;
   parameters.num_threads = opj_get_num_cpus() - 2; 
+  fprintf(stderr, "start with %d threads\n", parameters.num_threads);
   parameters.print_debug = 0;
   parameters.out_fd = STDOUT_FILENO;
   parameters.decode_frame_buffer_size = 100;
