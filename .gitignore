@@ -1,3 +1,4 @@
 *.o
 imf_fs
 openjpeg/build
+third_party/
