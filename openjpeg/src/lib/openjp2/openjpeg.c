@@ -113,12 +113,15 @@ static OPJ_SIZE_T opj_write_to_buffer (void* p_buffer, OPJ_SIZE_T p_nb_bytes, op
     void* pcur = p_source_buffer->cur;
 
     OPJ_SIZE_T len = p_source_buffer->len;
+    OPJ_SIZE_T dist;
+    OPJ_SIZE_T n;
 
     if (0 == len) {
         len = 1;
     }
 
-    OPJ_SIZE_T dist = pcur - pbuf, n = len - dist;
+    dist = pcur - pbuf;
+    n = len - dist;
     assert (dist <= len);
 
     while (n < p_nb_bytes) {
@@ -182,11 +185,12 @@ static OPJ_BOOL opj_seek_from_buffer (OPJ_OFF_T len, opj_buffer_info_t* psrc)
 
 opj_stream_t* OPJ_CALLCONV opj_stream_create_buffer_stream (opj_buffer_info_t* psrc, OPJ_BOOL input)
 {
+    opj_stream_t* ps;
     if (!psrc) {
         return 0;
     }
 
-    opj_stream_t* ps = opj_stream_default_create (input);
+    ps = opj_stream_default_create (input);
 
     if (0 == ps) {
         return 0;
