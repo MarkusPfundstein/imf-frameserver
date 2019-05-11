@@ -8,16 +8,17 @@ linked_list_t* ll_create(void *data) {
   return node;
 }
 
-void ll_append(linked_list_t *head, void *user_data) {
+linked_list_t* ll_append(linked_list_t *head, void *user_data) {
   if (!head) {
-    return;
+    head = ll_create(user_data);
+    return head;
   }
   linked_list_t *p = head;
   while (p->next != NULL) {
     p = p->next;
   }
-  linked_list_t *ll = ll_create(user_data);
-  p->next = ll;
+  p->next = ll_create(user_data);
+  return head;
 }
 
 linked_list_t *ll_poph(linked_list_t **head) {
@@ -46,4 +47,13 @@ unsigned int ll_len(linked_list_t *head) {
   return i;
 }
 
-
+void ll_free(linked_list_t *ll, free_user_data_func_t freefn) {
+  linked_list_t *head;
+  while (head = ll_poph(&ll)) {
+    void *res = head->user_data;
+    if (freefn) {
+      freefn(res);
+    }
+    free(head);
+  }
+}

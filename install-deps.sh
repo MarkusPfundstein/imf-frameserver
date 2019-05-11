@@ -45,8 +45,20 @@ if [ ! -e third_party/asdcplib/include/ ]; then
   autoreconf -if
   ./configure --enable-freedist --enable-as-02 --enable-dev-headers --prefix=${ROOT_DIR}/third_party/asdcplib --with-openssl=${ROOT_DIR}/third_party/openssl
   make
-  make dist
   make install
 else
   echo "asdcplib already installed"
+fi
+
+# -------- libxml2 ----------
+if [ ! -e third_party/libxml2/include ]; then
+  echo "install libxml2"
+  mkdir -p third_party/libxml2
+
+  cd libxml2-2.7.2
+  ./configure --prefix=${ROOT_DIR}/third_party/libxml2
+  make
+  make install
+else
+  echo "libxml2 already installed"
 fi
