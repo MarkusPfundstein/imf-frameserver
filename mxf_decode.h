@@ -4,12 +4,11 @@
 #include "linked_list.h"
 
 typedef struct {
-  void *user_data;
-  //opj_dparameters_t core;
-  int num_threads;
-  int print_debug;
-  int out_fd;
-  unsigned int decode_frame_buffer_size;
+    void *user_data;
+    int num_threads;
+    int print_debug;
+    int out_fd;
+    unsigned int decode_frame_buffer_size;
 } decoding_parameters_t;
 
 extern int stop_decoding_signal();
