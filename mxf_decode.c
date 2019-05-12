@@ -4,6 +4,7 @@
 #include <string.h>
 #include <openjpeg-2.3/openjpeg.h>
 #include <pthread.h>
+#include <time.h>
 #include "asdcp.h"
 #include "color.h"
 #include "linked_list.h"
@@ -59,21 +60,18 @@ void quiet_callback(const char *msg, void *client_data)
 
 int image_to_fd(opj_image_t *image, int fd) 
 {
-    unsigned int compno, numcomps;
-    int line, row, curr, mask;
-    int *ptr;
-
     if ((image->numcomps * image->x1 * image->y1) == 0) {
         fprintf(stderr, "\nError: invalid raw image parameters\n");
         return 1;
     }
 
-    numcomps = image->numcomps;
+    unsigned int numcomps = image->numcomps;
 
     if (numcomps > 4) {
         numcomps = 4;
     }
 
+    int compno;
     for (compno = 1; compno < numcomps; ++compno) {
         if (image->comps[0].dx != image->comps[compno].dx) {
             break;
@@ -116,11 +114,11 @@ int image_to_fd(opj_image_t *image, int fd)
     int err = 0;
     for (int i = 0; i < image->numcomps; i++) {
         int compno = comp_table[i];
-        mask = (1 << image->comps[compno].prec) - 1;
-        ptr = image->comps[compno].data;
-        for (line = 0; line < h; line++) {
-            for (row = 0; row < w; row++)    {
-                curr = *ptr;
+        int mask = (1 << image->comps[compno].prec) - 1;
+        int *ptr = image->comps[compno].data;
+        for (int line = 0; line < h; line++) {
+            for (int row = 0; row < w; row++)    {
+                int curr = *ptr;
                 if (curr > 65535) {
                     curr = 65535;
                 } else if (curr < 0) {
