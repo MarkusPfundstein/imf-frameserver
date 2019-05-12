@@ -110,12 +110,10 @@ int main(int argc, char **argv) {
         fprintf(stderr, "\t%s\n", ((asset_t*)i->user_data)->mxf_path);
     }
 
-    fprintf(stderr, "start extracting audio\n");
-    err = extract_audio_files(decoding_assets.audio_assets, NULL);
-    if (!err) {
-        fprintf(stderr, "start decoding\n");
-    //    err = decode_video_files(decoding_assets.video_assets, &parameters);
-    }
+    err = mxf_decode_files(
+            decoding_assets.video_assets,
+            decoding_assets.audio_assets,
+            &parameters);
 
     ll_free(decoding_assets.video_assets, (free_user_data_func_t)free_asset);
     ll_free(decoding_assets.audio_assets, (free_user_data_func_t)free_asset);

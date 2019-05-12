@@ -448,12 +448,19 @@ int stop_decoding_signal() {
     keep_running = 0;
 }
 
-int extract_audio_files(linked_list_t *files, void *user_data) {
-    int err = asdcp_read_audio_files(files, user_data);
-    return err;
+void* extract_audio_thread(void *data) {
+    linked_list_t *files = data;
+
+    asdcp_audio_context_t ctx;
+    ctx.keep_running = &keep_running;
+
+    int err = asdcp_read_audio_files(files, &ctx, NULL);
+
+    return NULL;
 }
 
-int decode_video_files(linked_list_t *files, decoding_parameters_t *parameters) {
+int mxf_decode_files(linked_list_t *video_files, linked_list_t *audio_files, decoding_parameters_t *parameters) {
+    pthread_t extract_audio_thread_id;
     pthread_t decoding_queue_thread_id;
     pthread_t writeout_queue_thread_id;
 
@@ -476,8 +483,12 @@ int decode_video_files(linked_list_t *files, decoding_parameters_t *parameters) 
 
     keep_running = 1;
 
-    int err = asdcp_read_video_files(files, on_frame_data_mt, parameters);
+    // start audio extracting on thread
+    pthread_create(&extract_audio_thread_id, NULL, extract_audio_thread, audio_files);
+    // start video decoding pipeline on main tread
+    int err = asdcp_read_video_files(video_files, on_frame_data_mt, parameters);
 
+    pthread_join(extract_audio_thread_id, NULL);
     pthread_join(decoding_queue_thread_id, NULL);
     pthread_join(writeout_queue_thread_id, NULL);
 

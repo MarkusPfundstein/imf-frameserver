@@ -13,7 +13,7 @@ using namespace ASDCP;
 
 const ui32_t FRAME_BUFFER_SIZE = 4 * Kumu::Megabyte;
 
-Result_t read_PCM_file(asset_t *asset, void *user_data) {
+Result_t read_PCM_file(asset_t *asset, asdcp_audio_context_t *context, void *user_data) {
     AESDecContext* Context = 0;
     HMACContext* HMAC = 0;
     AS_02::PCM::MXFReader Reader;
@@ -76,8 +76,6 @@ Result_t read_PCM_file(asset_t *asset, void *user_data) {
     
     int last_frame = AS_02::MXF::CalcFramesFromDurationInSamples(asset->end_frame, *wave_descriptor, edit_rate);
 
-    fprintf(stderr, "after conv %d\n", last_frame);
-
     /*
     if (ASDCP_SUCCESS(result) && Options.key_flag) {
         Context = new AESDecContext;
@@ -98,17 +96,18 @@ Result_t read_PCM_file(asset_t *asset, void *user_data) {
     */
 
     for (unsigned int i = asset->start_frame; i < last_frame; i++) {
+        if (!*(context->keep_running)) {
+            break;
+        }
         result = Reader.ReadFrame(i, FrameBuffer, Context, HMAC);
 
-
-        fprintf(stderr, "read frame %d - %d\n", i, FrameBuffer.Size());
+        //fprintf(stderr, "read frame %d - %d - %d\n", i, FrameBuffer.Size(), *context->keep_running);
+        //usleep(1000);
 
         if (!ASDCP_SUCCESS(result)) {
             break;
         }
         if ( FrameBuffer.Size() != FrameBuffer.Capacity()) {
-            fprintf(stderr, "Last frame is incomplete, padding with zeros.\n");
-            // actually, it has already been zeroed for us, we just need to recognize the appropriate size
             FrameBuffer.Size(FrameBuffer.Capacity());
         }
         //result = OutWave.WriteFrame(FrameBuffer);
@@ -207,44 +206,7 @@ Result_t read_JP2K_file(asset_t *asset, asdcp_on_j2k_frame_func on_frame, void *
     return result;
 }
 
-int asdcp_read_mxf_list(linked_list_t *files, asdcp_on_j2k_frame_func on_frame, void *user_data) {
-    int err = 0;
-
-    for (linked_list_t *c = files; !err && c; c = c->next) {
-        EssenceType_t essenceType;
-        asset_t *asset = (asset_t*)c->user_data;
-        Result_t result = ASDCP::EssenceType(asset->mxf_path, essenceType);
-
-        if (ASDCP_SUCCESS(result)) {
-            switch (essenceType) {
-                case ESS_AS02_JPEG_2000:
-                    result = read_JP2K_file(asset, on_frame, user_data);
-                    break;
-                case ESS_AS02_PCM_24b_48k:
-                case ESS_AS02_PCM_24b_96k:
-                    result = read_PCM_file(asset, user_data);
-                    break;
-                case ESS_AS02_TIMED_TEXT:
-                    //result = read_timed_text_file(Options);
-                    break;
-                default:
-                    fprintf(stderr, "%s: Unknown file type (%d), not AS-02 essence.\n", asset->mxf_path, essenceType);
-                    return 1;
-            }
-        } else {
-            fprintf(stderr, "couldn't get EssenceType for %s\n", asset->mxf_path);
-            err = 1;
-        }
-    }
-
-    fprintf(stderr, "shutdown frame\n");
-    on_frame(NULL, 0, 0, user_data);
-
-    return !err;
-}
-
-int asdcp_read_audio_files(linked_list_t *files, void *user_data) {
-    int err = 0;
+int asdcp_read_audio_files(linked_list_t *files, asdcp_audio_context_t *context, void *user_data) { int err = 0;
 
     for (linked_list_t *c = files; !err && c; c = c->next) {
         EssenceType_t essenceType;
@@ -260,7 +222,7 @@ int asdcp_read_audio_files(linked_list_t *files, void *user_data) {
             err = 1;
             break;
         }
-        result = read_PCM_file(asset, user_data);
+        result = read_PCM_file(asset, context, user_data);
         if (!ASDCP_SUCCESS(result)) {
             err = 1;
             break;
