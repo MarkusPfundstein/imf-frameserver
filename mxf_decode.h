@@ -13,6 +13,7 @@ typedef struct {
 
 extern int stop_decoding_signal();
 
+extern int extract_audio_files(linked_list_t *files, void *user_data);
 extern int decode_video_files(linked_list_t *files, decoding_parameters_t *parameters);
 
 #endif

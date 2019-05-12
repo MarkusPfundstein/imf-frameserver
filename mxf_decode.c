@@ -60,6 +60,24 @@ void quiet_callback(const char *msg, void *client_data)
 
 int image_to_fd(opj_image_t *image, int fd) 
 {
+    
+    // detect SYCC or RGB color space -> TODO: this is coming from CPL, so we can
+    // read that out when parsing CPL and pass it to here
+    /*
+    if (image->color_space != OPJ_CLRSPC_SYCC
+            && image->numcomps == 3
+            && image->comps[0].dx == image->comps[0].dy
+            && image->comps[1].dx != 1) {
+
+        fprintf(stderr, "convert\n");
+        image->color_space = OPJ_CLRSPC_SYCC;
+        int ok = color_sycc_to_rgb(image);
+        if (!ok) {
+            fprintf(stderr, "error converting sycc to rgb\n");
+            return 1;
+        }
+    }*/
+
     if ((image->numcomps * image->x1 * image->y1) == 0) {
         fprintf(stderr, "\nError: invalid raw image parameters\n");
         return 1;
@@ -106,10 +124,14 @@ int image_to_fd(opj_image_t *image, int fd)
         unsigned char vals[2];
     } uc16;
 
-    // TO-DO: get out_buf from outside this function and cache it 
+    // w * h * RGB * 2x8bit
     unsigned int frame_size = w * h * image->numcomps * 2;
     unsigned char *out_buf = (unsigned char*)malloc(frame_size);
     int out_buf_pos = 0;
+
+    clock_t s;
+    clock_t e;
+    s = clock();
 
     int err = 0;
     for (int i = 0; i < image->numcomps; i++) {
@@ -117,7 +139,7 @@ int image_to_fd(opj_image_t *image, int fd)
         int mask = (1 << image->comps[compno].prec) - 1;
         int *ptr = image->comps[compno].data;
         for (int line = 0; line < h; line++) {
-            for (int row = 0; row < w; row++)    {
+            for (int row = 0; row < w; row++) {
                 int curr = *ptr;
                 if (curr > 65535) {
                     curr = 65535;
@@ -132,6 +154,11 @@ int image_to_fd(opj_image_t *image, int fd)
         }
     }
 
+    e = clock();
+    //fprintf(stderr, "[writeout] convert image to buf %f\n", ((double) (e - s)) / CLOCKS_PER_SEC);
+
+    s = clock();
+
     out_buf_pos = 0;
     int written = 0;
     while (1) {
@@ -144,6 +171,10 @@ int image_to_fd(opj_image_t *image, int fd)
         }
         out_buf_pos += written;
     }
+
+    e = clock();
+
+    //fprintf(stderr, "[writeout] pipe %f\n", ((double) (e - s)) / CLOCKS_PER_SEC);
 
     free(out_buf);
     return err;
@@ -161,7 +192,7 @@ int on_frame_data_mt(
         int frames_buffered = ll_len(decoding_queue_s);
         pthread_mutex_unlock(&decoding_mutex);
         if (frames_buffered > parameters->decode_frame_buffer_size) {
-            usleep(50);
+            usleep(25);
         } else {
             break;
         }
@@ -253,6 +284,8 @@ int decode_frame(
             goto free_and_out;
         }
 
+        clock_t s = clock();
+
         ok = opj_decode(
                 codec,
                 stream,
@@ -261,6 +294,11 @@ int decode_frame(
             fprintf(stderr, "failed on decoding image [frame: %d]\n", current_frame);
             goto free_and_out;
         }
+
+        clock_t e = clock();
+
+        //fprintf(stderr, "[decode] img decompression %f\n", ((double) (e - s)) / CLOCKS_PER_SEC);
+
 
         ok = opj_end_decompress(codec, stream);
         if (!ok) {
@@ -274,20 +312,42 @@ int decode_frame(
             goto free_and_out;
         }
 
-        // detect SYCC or RGB color space -> TODO: this is coming from CPL, so we can
-        // read that out when parsing CPL and pass it to here
+        
+        // TO-DO: move this to writeout thread. Tried but doesnt work.
+        // Does openjpeg have some internal state that prevents us from
+        // calling color_sycc_to_rgb from other thread?
         if (image->color_space != OPJ_CLRSPC_SYCC
-                && image->numcomps == 3
-                && image->comps[0].dx == image->comps[0].dy
-                && image->comps[1].dx != 1) {
+            && image->numcomps == 3
+            && image->comps[0].dx == image->comps[0].dy
+            && image->comps[1].dx != 1) {
+
             image->color_space = OPJ_CLRSPC_SYCC;
-            ok = color_sycc_to_rgb(image);
+            s = clock();
+            int ok = color_sycc_to_rgb(image);
             if (!ok) {
-                fprintf(stderr, "error converting sycc to rgb [frame: %d]\n", current_frame);
-                goto free_and_out;
+                fprintf(stderr, "error converting sycc to rgb\n");
+                return 1;
             }
+            e = clock();
+
+            //fprintf(stderr, "[decode] img color space convert - %f\n", ((double) (e - s)) / CLOCKS_PER_SEC);
+
         }
+
     }
+
+    // eventually throttle in case io queue cant keep up with
+    // decoding queue
+    do {
+        pthread_mutex_lock(&writeout_mutex);
+        int frames_buffered = ll_len(writeout_queue_s);
+        pthread_mutex_unlock(&writeout_mutex);
+        if (frames_buffered > 100) {
+            usleep(25);
+        } else {
+            break;
+        }
+    } while (1);
 
     writeout_queue_context_t *writeout_queue_context = (writeout_queue_context_t *)malloc(sizeof(writeout_queue_context_t));
     writeout_queue_context->parameters = parameters;
@@ -306,6 +366,7 @@ int decode_frame(
 
 free_and_out:
     if (image) {
+        fprintf(stderr, "free and out bitch\n");
         opj_image_destroy(image);
     }
 success_out:
@@ -324,7 +385,7 @@ void *writeout_frames_consumer(void *thread_data) {
         linked_list_t *head = ll_poph(&writeout_queue_s);
         if (!head) {
             pthread_mutex_unlock(&writeout_mutex);
-            usleep(50);
+            usleep(25);
             continue;
         }    
         pthread_mutex_unlock(&writeout_mutex);
@@ -356,7 +417,7 @@ void *decode_frames_consumer(void *thread_data) {
         linked_list_t *head = ll_poph(&decoding_queue_s);
         if (!head) {
             pthread_mutex_unlock(&decoding_mutex);
-            usleep(50);
+            usleep(25);
             continue;
         }
         pthread_mutex_unlock(&decoding_mutex);
@@ -387,6 +448,11 @@ int stop_decoding_signal() {
     keep_running = 0;
 }
 
+int extract_audio_files(linked_list_t *files, void *user_data) {
+    int err = asdcp_read_audio_files(files, user_data);
+    return err;
+}
+
 int decode_video_files(linked_list_t *files, decoding_parameters_t *parameters) {
     pthread_t decoding_queue_thread_id;
     pthread_t writeout_queue_thread_id;
@@ -409,9 +475,8 @@ int decode_video_files(linked_list_t *files, decoding_parameters_t *parameters) 
     parameters->user_data = &core;
 
     keep_running = 1;
-    int err = 0;
 
-    asdcp_read_mxf_list(files, on_frame_data_mt, parameters);
+    int err = asdcp_read_video_files(files, on_frame_data_mt, parameters);
 
     pthread_join(decoding_queue_thread_id, NULL);
     pthread_join(writeout_queue_thread_id, NULL);

@@ -35,9 +35,15 @@ int get_audio_assets(const char *cpl_path, const char *assetmap_path, decoding_a
             fprintf(stderr, "error resolving asset %s for resource %s\n", cpl_res->track_file_id, cpl_res->id);
             err = 1;
         } else {
-            asset_t* asset = (asset_t*)malloc(sizeof(asset_t));
-            strcpy(asset->mxf_path, chunk->path);
-            decoding_assets->audio_assets = ll_append(decoding_assets->audio_assets, asset);
+            for (int i = 0; i < cpl_res->repeat_count; ++i) {
+                asset_t* asset = (asset_t*)malloc(sizeof(asset_t));
+                memset(asset, 0, sizeof(asset_t));
+                strcpy(asset->mxf_path, chunk->path);
+                asset->start_frame = cpl_res->entry_point;
+                asset->end_frame = cpl_res->source_duration;
+
+                decoding_assets->audio_assets = ll_append(decoding_assets->audio_assets, asset);
+            }
         }
         am_free_chunk(chunk);
     }
@@ -104,8 +110,12 @@ int main(int argc, char **argv) {
         fprintf(stderr, "\t%s\n", ((asset_t*)i->user_data)->mxf_path);
     }
 
-    fprintf(stderr, "start decoding\n");
-    err = decode_video_files(decoding_assets.video_assets, &parameters);
+    fprintf(stderr, "start extracting audio\n");
+    err = extract_audio_files(decoding_assets.audio_assets, NULL);
+    if (!err) {
+        fprintf(stderr, "start decoding\n");
+    //    err = decode_video_files(decoding_assets.video_assets, &parameters);
+    }
 
     ll_free(decoding_assets.video_assets, (free_user_data_func_t)free_asset);
     ll_free(decoding_assets.audio_assets, (free_user_data_func_t)free_asset);

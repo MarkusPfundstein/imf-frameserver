@@ -18,7 +18,8 @@ typedef struct {
 
 typedef int (*asdcp_on_j2k_frame_func)(unsigned char *data, unsigned int length, unsigned int frame_count, void *user_data);
 
-extern int asdcp_read_mxf_list(linked_list_t *files, asdcp_on_j2k_frame_func on_frame, void *user_data);
+extern int asdcp_read_audio_files(linked_list_t *files, void *user_data);
+extern int asdcp_read_video_files(linked_list_t *files, asdcp_on_j2k_frame_func on_frame, void *user_data);
 
 #ifdef __cplusplus
 }
