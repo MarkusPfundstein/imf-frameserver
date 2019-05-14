@@ -2,6 +2,9 @@
 #include <openjpeg-2.3/openjpeg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include "mxf_decode.h"
 #include "asdcp.h"
@@ -16,8 +19,7 @@ void SIGINT_handler(int dummy) {
 static void free_asset(asset_t *asset) {
     if (asset) {
         free(asset);
-    }
-}
+    } }
 
 typedef struct {
     linked_list_t *video_assets;
@@ -80,8 +82,40 @@ int get_video_assets(const char *cpl_path, const char *assetmap_path, decoding_a
 
 int main(int argc, char **argv) {
 
+    int err;
     if (argc != 3) {
         fprintf(stderr, "no cpl and assetmap");
+        return 1;
+    }
+
+    const char *video_fifo_path = "/tmp/imf-fs-rgb444.fifo";
+    const char *audio_fifo_path = "/tmp/imf-fs-pcm.fifo";
+
+    if (access(video_fifo_path, F_OK) == -1) {
+        fprintf(stderr, "create fifo %s\n", video_fifo_path);
+        err = mkfifo(video_fifo_path, 0666);
+        if (err) {
+            fprintf(stderr, "error making %s\n", video_fifo_path);
+            return 1;
+        }
+    }
+    if (access(audio_fifo_path, F_OK) == -1) {
+        fprintf(stderr, "create fifo %s\n", audio_fifo_path);
+        err = mkfifo(audio_fifo_path, 0666);
+        if (err) {
+            fprintf(stderr, "error making %s\n", audio_fifo_path);
+            return 1;
+        }
+    }
+
+    int video_fd = open(video_fifo_path, O_WRONLY);
+    if (video_fd < 0) {
+        fprintf(stderr, "error opening %s\n", video_fifo_path);
+        return 1;
+    }
+    int audio_fd = open(audio_fifo_path, O_WRONLY);
+    if (audio_fd < 0) {
+        fprintf(stderr, "error opening %s\n", audio_fifo_path);
         return 1;
     }
 
@@ -91,14 +125,23 @@ int main(int argc, char **argv) {
     memset(&parameters, 0, sizeof(decoding_parameters_t));
     parameters.num_threads = opj_get_num_cpus() - 2; 
     parameters.print_debug = 0;
-    parameters.out_fd = STDOUT_FILENO;
+    parameters.video_out_fd = video_fd;
+    parameters.audio_out_fd = audio_fd;
     parameters.decode_frame_buffer_size = 50;
 
     decoding_assets_t decoding_assets;
     memset(&decoding_assets, 0, sizeof(decoding_assets_t));
 
-    int err = get_video_assets(argv[1], argv[2], &decoding_assets);
+    err = get_video_assets(argv[1], argv[2], &decoding_assets);
+    if (err) {
+        fprintf(stderr, "error getting video assets from CPL\n");
+        return 1;
+    }
     err = get_audio_assets(argv[1], argv[2], &decoding_assets);
+    if (err) {
+        fprintf(stderr, "error getting audio assets from CPL\n");
+        return 1;
+    }
 
     fprintf(stderr, "loaded resources:\n");
     fprintf(stderr, "VIDEO\n");
@@ -117,6 +160,9 @@ int main(int argc, char **argv) {
 
     ll_free(decoding_assets.video_assets, (free_user_data_func_t)free_asset);
     ll_free(decoding_assets.audio_assets, (free_user_data_func_t)free_asset);
+    
+    close(audio_fd);
+    close(video_fd);
 
     return !err;
 }

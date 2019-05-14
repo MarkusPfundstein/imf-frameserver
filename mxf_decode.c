@@ -394,8 +394,8 @@ void *writeout_frames_consumer(void *thread_data) {
         if (!writeout_queue_context->image) {
             keep_running = 0;
         } else {
-            if (writeout_queue_context->parameters->out_fd >= 0) {
-                int err = image_to_fd(writeout_queue_context->image, writeout_queue_context->parameters->out_fd); 
+            if (writeout_queue_context->parameters->video_out_fd >= 0) {
+                int err = image_to_fd(writeout_queue_context->image, writeout_queue_context->parameters->video_out_fd); 
                 if (err) {
                     fprintf(stderr, "error image_to_fd [frame: %d]\n", writeout_queue_context->current_frame);
                     keep_running = 0;
@@ -449,27 +449,37 @@ int stop_decoding_signal() {
 }
 
 int on_audio_frame_func(unsigned char *buf, unsigned int length, unsigned int current_frame, void *user_data) {
+    
+    decoding_parameters_t *parameters = user_data;
 
     if (!keep_running) {
         return -1;
     }
     fprintf(stderr, "got audio frame %d - %d\n", current_frame, length);
 
-    /*
+    
     int written = 0;
     while (1) {
-        int n = write(STDOUT_FILENO, buf + written, length - written);
+        int n = write(parameters->audio_out_fd, buf + written, length - written);
         if (n <= 0) {
             break;
         }
         written += n;
-    }*/
+    }
+    free(buf);
     return 0;
 }
 
+typedef struct {
+    linked_list_t *files;
+    decoding_parameters_t *parameters;
+} audio_thread_args_t;
+
 void* extract_audio_thread(void *data) {
-    linked_list_t *files = data;
-    int err = asdcp_read_audio_files(files, on_audio_frame_func, NULL);
+    audio_thread_args_t *args = data;
+    linked_list_t *files = args->files;
+    decoding_parameters_t *parameters = args->parameters;
+    int err = asdcp_read_audio_files(files, on_audio_frame_func, parameters);
     if (err && !keep_running) {
         fprintf(stderr, "error audio thread\n");
         stop_decoding_signal();
@@ -502,8 +512,12 @@ int mxf_decode_files(linked_list_t *video_files, linked_list_t *audio_files, dec
 
     keep_running = 1;
 
+    audio_thread_args_t audio_thread_args;
+    audio_thread_args.files = audio_files;
+    audio_thread_args.parameters = parameters;
+
     // start audio extracting on thread
-    pthread_create(&extract_audio_thread_id, NULL, extract_audio_thread, audio_files);
+    pthread_create(&extract_audio_thread_id, NULL, extract_audio_thread, &audio_thread_args);
     // start video decoding pipeline on main tread
     int err = 0;
     err = asdcp_read_video_files(video_files, on_frame_data_mt, parameters);

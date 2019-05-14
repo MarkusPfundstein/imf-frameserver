@@ -12,13 +12,11 @@ export LD_LIBRARY_PATH=${CUR_PATH}/third_party/openssl/lib
 
 #valgrind --tool=callgrind ${CUR_PATH}/imf_fs ${CPL} ${ASSETMAP} > /dev/null
 #exit 1
-${CUR_PATH}/imf_fs ${CPL} ${ASSETMAP} | ffmpeg \
-  -f rawvideo \
-  -pix_fmt gbrp10le \
-  -s:v 1920x1080 \
-  -r 25 \
-  -i - \
-  -y ~/vid_output.mp4
-#~/vid_output.mp4
+${CUR_PATH}/imf_fs ${CPL} ${ASSETMAP} &
+ffmpeg -f s24le -ar 48k -ac 2 -i /tmp/imf-fs-pcm.fifo -y bs500a_audio.wav &
+ffmpeg -f rawvideo -pix_fmt gbrp10le -s:v 1920x1080 -r 25 -i /tmp/imf-fs-rgb444.fifo -y bs500a_video.mp4 &
+wait
 
-mv ~/vid_output.mp4 ~/winhome/Downloads/
+mv bs500a_video.mp4 ~/winhome/Downloads/
+mv bs500a_audio.wav ~/winhome/Downloads/
+

@@ -7,7 +7,8 @@ typedef struct {
     void *user_data;
     int num_threads;
     int print_debug;
-    int out_fd;
+    int video_out_fd;
+    int audio_out_fd;
     unsigned int decode_frame_buffer_size;
 } decoding_parameters_t;
 
