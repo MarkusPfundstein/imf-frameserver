@@ -91,22 +91,28 @@ int main(int argc, char **argv) {
     const char *video_fifo_path = "/tmp/imf-fs-rgb444.fifo";
     const char *audio_fifo_path = "/tmp/imf-fs-pcm.fifo";
 
-    if (access(video_fifo_path, F_OK) == -1) {
-        fprintf(stderr, "create fifo %s\n", video_fifo_path);
-        err = mkfifo(video_fifo_path, 0666);
-        if (err) {
-            fprintf(stderr, "error making %s\n", video_fifo_path);
-            return 1;
-        }
+    if (access(video_fifo_path, F_OK) != -1) {
+        remove(video_fifo_path);
     }
-    if (access(audio_fifo_path, F_OK) == -1) {
-        fprintf(stderr, "create fifo %s\n", audio_fifo_path);
-        err = mkfifo(audio_fifo_path, 0666);
-        if (err) {
-            fprintf(stderr, "error making %s\n", audio_fifo_path);
-            return 1;
-        }
+
+    if (access(audio_fifo_path, F_OK) != -1) {
+        remove(audio_fifo_path);
     }
+
+    fprintf(stderr, "create fifo %s\n", video_fifo_path);
+    err = mkfifo(video_fifo_path, 0666);
+    if (err) {
+        fprintf(stderr, "error making %s\n", video_fifo_path);
+        return 1;
+    }
+    fprintf(stderr, "create fifo %s\n", audio_fifo_path);
+    err = mkfifo(audio_fifo_path, 0666);
+    if (err) {
+        fprintf(stderr, "error making %s\n", audio_fifo_path);
+        return 1;
+    }
+
+    usleep(500);
 
     int video_fd = open(video_fifo_path, O_WRONLY);
     if (video_fd < 0) {
@@ -163,6 +169,8 @@ int main(int argc, char **argv) {
     
     close(audio_fd);
     close(video_fd);
+
+    fprintf(stderr, "shutdown imf-fs - bye bye \n");
 
     return !err;
 }

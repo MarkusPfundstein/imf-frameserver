@@ -14,11 +14,11 @@ export LD_LIBRARY_PATH=${CUR_PATH}/third_party/openssl/lib
 #exit 1
 ${CUR_PATH}/imf_fs ${CPL} ${ASSETMAP} &
 ffmpeg -f s24le -ar 48k -ac 2 -i /tmp/imf-fs-pcm.fifo -y bs500a_audio.wav &
-ffmpeg -f rawvideo -pix_fmt gbrp10le -s:v 1920x1080 -r 25 -i /tmp/imf-fs-rgb444.fifo -c:v rawvideo -y bs500a_video.nut &
+ffmpeg -f rawvideo -pix_fmt gbrp10le -s:v 1920x1080 -r 25 -i /tmp/imf-fs-rgb444.fifo -c:v r210 -y bs500a_video.mov &
 wait
 
-ffmpeg -i bs500a_audio.wav -i bs500a_video.nut -c:v copy -c:a copy -y bs500a.nut
+ffmpeg -i bs500a_audio.wav -i bs500a_video.mov -c:v copy -c:a copy -y bs500a.mov
 
-mv bs500a.nut ~/winhome/Downloads/
+mv bs500a.mov ~/winhome/Downloads/
 
-ffmpeg -i ~/winhome/Downloads/bs500a.nut -c:v libx264 -y ~/winhome/Downloads/bs500aXYZ.mp4
+ffmpeg -i ~/winhome/Downloads/bs500a.mov -c:v libx264 -y ~/winhome/Downloads/bs500aXYZ-mov.mp4

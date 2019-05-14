@@ -223,7 +223,7 @@ int decode_frame(
         unsigned int current_frame,
         decoding_parameters_t *parameters)
 {
-    int ok = 0;
+    int ok = 1;
     opj_image_t *image = NULL;
     opj_stream_t *stream = NULL;
     opj_stream_t *codec = NULL;
@@ -392,6 +392,8 @@ void *writeout_frames_consumer(void *thread_data) {
 
         writeout_queue_context_t *writeout_queue_context = (writeout_queue_context_t *)head->user_data;
         if (!writeout_queue_context->image) {
+            // we got from decode thread an empty image -> we are done.
+            // as this is last stage in decode threading pipeline, we can shutdown everthing
             keep_running = 0;
         } else {
             if (writeout_queue_context->parameters->video_out_fd >= 0) {
@@ -400,6 +402,7 @@ void *writeout_frames_consumer(void *thread_data) {
                     fprintf(stderr, "error image_to_fd [frame: %d]\n", writeout_queue_context->current_frame);
                     keep_running = 0;
                 }
+                //fprintf(stderr, "wrote %d\n", writeout_queue_context->current_frame);
             }
 
             opj_image_destroy(writeout_queue_context->image);
@@ -423,19 +426,23 @@ void *decode_frames_consumer(void *thread_data) {
         pthread_mutex_unlock(&decoding_mutex);
 
         decoding_queue_context_t *decoding_queue_context = (decoding_queue_context_t *)head->user_data;
-        if (!decoding_queue_context->frame_buf) {
+        //if (!decoding_queue_context->frame_buf) {
+        //    fprintf(stderr, "decode_frames_consumer done\n");
+        //    break;
+        //} else {
+        int err = decode_frame(
+                decoding_queue_context->frame_buf,
+                decoding_queue_context->frame_size,
+                decoding_queue_context->current_frame,
+                decoding_queue_context->parameters);
+        if (err) {
+            fprintf(stderr, "err decode frame\n");
             keep_running = 0;
-        } else {
-            int err = decode_frame(
-                    decoding_queue_context->frame_buf,
-                    decoding_queue_context->frame_size,
-                    decoding_queue_context->current_frame,
-                    decoding_queue_context->parameters);
-            if (err) {
-                keep_running = 0;
-            }
+        }
+        if (decoding_queue_context->frame_buf) {
             free(decoding_queue_context->frame_buf);
         }
+        //}
         free(decoding_queue_context);
         free(head);
     }
@@ -449,14 +456,11 @@ int stop_decoding_signal() {
 }
 
 int on_audio_frame_func(unsigned char *buf, unsigned int length, unsigned int current_frame, void *user_data) {
-    
-    decoding_parameters_t *parameters = user_data;
-
     if (!keep_running) {
         return -1;
     }
-    fprintf(stderr, "got audio frame %d - %d\n", current_frame, length);
 
+    decoding_parameters_t *parameters = user_data;
     
     int written = 0;
     while (1) {
