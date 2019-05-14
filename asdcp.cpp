@@ -13,7 +13,7 @@ using namespace ASDCP;
 
 const ui32_t FRAME_BUFFER_SIZE = 4 * Kumu::Megabyte;
 
-Result_t read_PCM_file(asset_t *asset, asdcp_audio_context_t *context, void *user_data) {
+Result_t read_PCM_file(asset_t *asset, asdcp_on_pcm_frame_func on_frame, void *user_data) {
     AESDecContext* Context = 0;
     HMACContext* HMAC = 0;
     AS_02::PCM::MXFReader Reader;
@@ -67,10 +67,12 @@ Result_t read_PCM_file(asset_t *asset, asdcp_audio_context_t *context, void *use
         return RESULT_FAIL;
     }
 
+    /*
     if (last_sample != asset->end_frame) {
         fprintf(stderr, "last_sample: %d != %d\n", last_sample, asset->end_frame);
         return RESULT_FAIL;
     }
+    */
 
     FrameBuffer.Capacity(AS_02::MXF::CalcFrameBufferSize(*wave_descriptor, edit_rate));
     
@@ -96,13 +98,7 @@ Result_t read_PCM_file(asset_t *asset, asdcp_audio_context_t *context, void *use
     */
 
     for (unsigned int i = asset->start_frame; i < last_frame; i++) {
-        if (!*(context->keep_running)) {
-            break;
-        }
         result = Reader.ReadFrame(i, FrameBuffer, Context, HMAC);
-
-        //fprintf(stderr, "read frame %d - %d - %d\n", i, FrameBuffer.Size(), *context->keep_running);
-        //usleep(1000);
 
         if (!ASDCP_SUCCESS(result)) {
             break;
@@ -110,7 +106,14 @@ Result_t read_PCM_file(asset_t *asset, asdcp_audio_context_t *context, void *use
         if ( FrameBuffer.Size() != FrameBuffer.Capacity()) {
             FrameBuffer.Size(FrameBuffer.Capacity());
         }
-        //result = OutWave.WriteFrame(FrameBuffer);
+
+        unsigned char *buf = (unsigned char*)malloc(FrameBuffer.Size());
+        memcpy(buf, FrameBuffer.Data(), FrameBuffer.Size());
+        int err = on_frame(buf, FrameBuffer.Size(), i, user_data);
+        if (err) {
+            fprintf(stderr, "break shit\n");
+            break;
+        }
     }
 
     fprintf(stderr, "done reading pcm\n");
@@ -206,7 +209,7 @@ Result_t read_JP2K_file(asset_t *asset, asdcp_on_j2k_frame_func on_frame, void *
     return result;
 }
 
-int asdcp_read_audio_files(linked_list_t *files, asdcp_audio_context_t *context, void *user_data) { int err = 0;
+int asdcp_read_audio_files(linked_list_t *files, asdcp_on_pcm_frame_func on_frame, void *user_data) { int err = 0;
 
     for (linked_list_t *c = files; !err && c; c = c->next) {
         EssenceType_t essenceType;
@@ -222,12 +225,13 @@ int asdcp_read_audio_files(linked_list_t *files, asdcp_audio_context_t *context,
             err = 1;
             break;
         }
-        result = read_PCM_file(asset, context, user_data);
+        result = read_PCM_file(asset, on_frame, user_data);
         if (!ASDCP_SUCCESS(result)) {
             err = 1;
             break;
         }
     }
+    on_frame(NULL, 0, 0, user_data);
 
     return !err;
 }

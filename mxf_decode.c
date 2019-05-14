@@ -448,13 +448,32 @@ int stop_decoding_signal() {
     keep_running = 0;
 }
 
+int on_audio_frame_func(unsigned char *buf, unsigned int length, unsigned int current_frame, void *user_data) {
+
+    if (!keep_running) {
+        return -1;
+    }
+    fprintf(stderr, "got audio frame %d - %d\n", current_frame, length);
+
+    /*
+    int written = 0;
+    while (1) {
+        int n = write(STDOUT_FILENO, buf + written, length - written);
+        if (n <= 0) {
+            break;
+        }
+        written += n;
+    }*/
+    return 0;
+}
+
 void* extract_audio_thread(void *data) {
     linked_list_t *files = data;
-
-    asdcp_audio_context_t ctx;
-    ctx.keep_running = &keep_running;
-
-    int err = asdcp_read_audio_files(files, &ctx, NULL);
+    int err = asdcp_read_audio_files(files, on_audio_frame_func, NULL);
+    if (err && !keep_running) {
+        fprintf(stderr, "error audio thread\n");
+        stop_decoding_signal();
+    }
 
     return NULL;
 }
@@ -486,7 +505,8 @@ int mxf_decode_files(linked_list_t *video_files, linked_list_t *audio_files, dec
     // start audio extracting on thread
     pthread_create(&extract_audio_thread_id, NULL, extract_audio_thread, audio_files);
     // start video decoding pipeline on main tread
-    int err = asdcp_read_video_files(video_files, on_frame_data_mt, parameters);
+    int err = 0;
+    err = asdcp_read_video_files(video_files, on_frame_data_mt, parameters);
 
     pthread_join(extract_audio_thread_id, NULL);
     pthread_join(decoding_queue_thread_id, NULL);
@@ -497,38 +517,4 @@ int mxf_decode_files(linked_list_t *video_files, linked_list_t *audio_files, dec
 
     return err;
 
-}
-
-int decode_mxf_file(const char *filename, decoding_parameters_t *parameters) {
-    pthread_t decoding_queue_thread_id;
-    pthread_t writeout_queue_thread_id;
-
-    if (pthread_mutex_init(&decoding_mutex, NULL) != 0) {
-        fprintf(stderr, "decoding mutex init has failed\n");
-        return 1;
-    }
-    if (pthread_mutex_init(&writeout_mutex, NULL) != 0) {
-        fprintf(stderr, "writeout mutex init has failed\n");
-        return 1;
-    }
-
-    pthread_create(&decoding_queue_thread_id, NULL, decode_frames_consumer, NULL);
-    pthread_create(&writeout_queue_thread_id, NULL, writeout_frames_consumer, NULL);
-
-    opj_dparameters_t core;
-    opj_set_default_decoder_parameters(&core);
-
-    parameters->user_data = &core;
-
-    keep_running = 1;
-    int err = 0;
-    //int err = asdcp_read_mxf(filename, parameters, on_frame_data_mt);
-
-    pthread_join(decoding_queue_thread_id, NULL);
-    pthread_join(writeout_queue_thread_id, NULL);
-
-    pthread_mutex_destroy(&decoding_mutex);
-    pthread_mutex_destroy(&writeout_mutex);
-
-    return err;
 }
