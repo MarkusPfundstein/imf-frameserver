@@ -8,6 +8,7 @@ Goals: parse interoperable master format CPL & OPL and serve jpeg2000 frames tra
 
 - take CPL & ASSETMAP as input, parses resources and mxf assets and outputs to stdout raw video frames
 - raw video frames can be piped into ffmpeg to do whatever you want
+- (audio support in branch audio-support incl. named fifo pipes and example how to make mp4 from IMF CPL)
 
 *Install*
 
