@@ -51,4 +51,4 @@ ${IMF_ENC} ${CPL} ${ASSETMAP} | ffmpeg -i - -f mp4 -y ~/xpipe.mp4
 
 ## License
 
-GPL (like ffmpeg)
+LGPL
