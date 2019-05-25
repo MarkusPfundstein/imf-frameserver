@@ -1,4 +1,4 @@
-# WIP project for IMF Frameserver 
+# IMF Frameserver - (CPL decoder)
 
 ## Goal
 
