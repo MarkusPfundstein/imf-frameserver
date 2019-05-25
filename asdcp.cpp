@@ -78,6 +78,7 @@ Result_t read_PCM_file(asset_t *asset, asdcp_on_pcm_frame_func on_frame, void *u
     FrameBuffer.Capacity(AS_02::MXF::CalcFrameBufferSize(*wave_descriptor, edit_rate));
     
     int last_frame = AS_02::MXF::CalcFramesFromDurationInSamples(asset->end_frame, *wave_descriptor, edit_rate);
+    int start_frame = AS_02::MXF::CalcFramesFromDurationInSamples(asset->start_frame, *wave_descriptor, edit_rate);
 
     /*
     if (ASDCP_SUCCESS(result) && Options.key_flag) {
@@ -98,7 +99,9 @@ Result_t read_PCM_file(asset_t *asset, asdcp_on_pcm_frame_func on_frame, void *u
     }
     */
 
-    for (unsigned int i = asset->start_frame; i < last_frame; i++) {
+    fprintf(stderr, "decode %s [%d, %d[\n", asset->mxf_path, start_frame, last_frame);
+
+    for (unsigned int i = start_frame; i < last_frame; i++) {
         result = Reader.ReadFrame(i, FrameBuffer, Context, HMAC);
 
         if (!ASDCP_SUCCESS(result)) {
@@ -112,12 +115,10 @@ Result_t read_PCM_file(asset_t *asset, asdcp_on_pcm_frame_func on_frame, void *u
         memcpy(buf, FrameBuffer.Data(), FrameBuffer.Size());
         int err = on_frame(buf, FrameBuffer.Size(), i, user_data);
         if (err) {
-            fprintf(stderr, "break shit\n");
             break;
         }
     }
 
-    fprintf(stderr, "done reading pcm\n");
     return result;
 }
 

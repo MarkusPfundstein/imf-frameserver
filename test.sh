@@ -14,10 +14,10 @@ export LD_LIBRARY_PATH=${CUR_PATH}/third_party/openssl/lib
 #exit 1
 
 # write to file test
-${CUR_PATH}/imf_fs ${CPL} ${ASSETMAP} > ~/x.nut
-ffmpeg -i ~/x.nut -f mp4 -y ~/winhome/Downloads/x.mp4
-rm ~/x.nut
+#${CUR_PATH}/imf_fs ${CPL} ${ASSETMAP} > ~/x.nut
+#ffmpeg -i ~/x.nut -f mp4 -y ~/winhome/Downloads/x.mp4
+#rm ~/x.nut
 
-# piping test
-#${CUR_PATH}/imf_fs ${CPL} ${ASSETMAP} | ffmpeg -i - -f mp4 -y ~/winhome/Downloads/x.mp4
+ piping test
+${CUR_PATH}/imf_fs ${CPL} ${ASSETMAP} | ffmpeg -i - -f mp4 -y ~/winhome/Downloads/xpipe.mp4
 

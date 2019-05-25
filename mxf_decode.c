@@ -537,6 +537,10 @@ int on_audio_frame_func(unsigned char *buf, unsigned int length, unsigned int cu
 #endif
     }
     do {
+        if (!keep_running) {
+            return -1;
+        }
+
         pthread_mutex_lock(&aud_packet_mutex);
         int frames_buffered = ll_len(aud_packet_queue_s);
         pthread_mutex_unlock(&aud_packet_mutex);
@@ -575,6 +579,8 @@ void* extract_audio_thread(void *data) {
         stop_decoding_signal();
     }
 
+    fprintf(stderr, "exit extract_audio_thread\n");
+
     return NULL;
 }
 
@@ -586,7 +592,7 @@ void* write_interleaved_consumer(void *data) {
     OutputStream *video_st = &(parameters->video_stream);
     OutputStream *audio_st = &(parameters->audio_stream);
 
-    while (!audio_done || !video_done) {
+    while (keep_running && (!audio_done || !video_done)) {
         if (!video_done && av_compare_ts(
                     video_st->next_pts,
                     video_st->codec_context->time_base,
@@ -869,10 +875,15 @@ int mxf_decode_files(linked_list_t *video_files, linked_list_t *audio_files, dec
     err = asdcp_read_video_files(video_files, on_frame_data_mt, parameters);
 
     pthread_join(extract_audio_thread_id, NULL);
+    fprintf(stderr, "extract_audio done\n");
     pthread_join(decoding_queue_thread_id, NULL);
+    fprintf(stderr, "decoding_queue done\n");
     pthread_join(writeout_queue_thread_id, NULL);
+    fprintf(stderr, "writeout_queue done\n");
     pthread_join(write_interleaved_thread_id, NULL);
+    fprintf(stderr, "write_interleaved done\n");
 
+    fprintf(stderr, "all threads done\n");
     av_write_trailer(parameters->format_context);
 
 free_and_out:

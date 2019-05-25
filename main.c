@@ -19,7 +19,8 @@ void SIGINT_handler(int dummy) {
 static void free_asset(asset_t *asset) {
     if (asset) {
         free(asset);
-    } }
+    }
+}
 
 typedef struct {
     linked_list_t *video_assets;
