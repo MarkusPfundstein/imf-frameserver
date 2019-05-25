@@ -1,27 +1,54 @@
-WIP project for IMF Frameserver 
+# WIP project for IMF Frameserver 
 
-Goals: parse interoperable master format CPL & OPL and serve jpeg2000 frames transformed by OPL macros
+## Goal
 
-- Highly WIP! Contains quite some shortcuts and unsecure code (e.g. strcpy). Please use with caution :-)
+Open Source Program to decode Interoperable Master Format (IMF) CPL & OPL into raw audio and video so that we can pipe it into ffmpeg or other processors
 
-*Features so far*
+**This is a WIP! Contains quite some shortcuts and unsecure code (e.g. strcpy). Please use with caution :-)**
 
-- take CPL & ASSETMAP as input, parses resources and mxf assets and outputs to stdout raw video frames
-- raw video frames can be piped into ffmpeg to do whatever you want
-- (audio support in branch audio-support incl. named fifo pipes and example how to make mp4 from IMF CPL)
+## Features so far
 
-*Install*
+- take CPL & ASSETMAP as input and output .nut file with r210 10-bit RGB444 and pcms24le
+- supports multiple segments with start points and repeat counts
+- output can be piped into ffmpeg to produce whatever you want
 
-(Ubuntu (WSL) & OSX)
-- apt install libtool, automake, autoconf, cmake (or brew)
+## Drawbacks
+
+- only CDCI yet
+- audio only wav s24le
+- only .nut pipe output
+- so far only tested on MrMXF bs500a IMF package (cdci, 25fps, 48000hz aud) ([Link](http://imf-mm-api.cloud/media/bs500/delivery/bs500a-dalet-a-ov.zip)). Requires thus more testing (e.g. with broadcast framerates such as 23.97)
+- running it still a bit clumsy
+- compiles under Ubuntu (nothing else tested)
+
+## Install
+
+Ubuntu (WSL)
+- apt install libtool, automake, autoconf, cmake
 - run sh install-deps.sh
 - run make
-- set LD_LIBRARY_PATH correctly (see test.sh)
 
-*Run it*
+## Run it
 
-see test.sh for how to pipe video into ffmpeg
+(see test.sh)
 
-*License*
+```
+CUR_PATH=$(pwd)
+IMF_ENC=${CUR_PATH}/imf_fs
 
-not yet decided. But until then its not for commercial use. If you want to use it, please contribute back to this open source project.
+# we need to be in IMF directory for relative path resolve to work (to be fixed)
+cd ~/bs500a-dalet-a-ov
+
+CPL=CPL_52a5343e-1184-44b4-86e3-43477636ae69.xml
+ASSETMAP=ASSETMAP.xml
+
+# hack
+export LD_LIBRARY_PATH=${CUR_PATH}/third_party/openssl/lib
+
+#direct piping
+${IMF_ENC} ${CPL} ${ASSETMAP} | ffmpeg -i - -f mp4 -y ~/xpipe.mp4
+```
+
+## License
+
+GPL (like ffmpeg)

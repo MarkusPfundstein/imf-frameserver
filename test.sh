@@ -10,11 +10,14 @@ ASSETMAP=ASSETMAP.xml
 # hack for development.
 export LD_LIBRARY_PATH=${CUR_PATH}/third_party/openssl/lib
 
-${CUR_PATH}/imf_fs ${CPL} ${ASSETMAP} | ffmpeg \
-  -f rawvideo \
-  -pix_fmt gbrp10le \
-  -s:v 1920x1080 \
-  -r 25 \
-  -i - \
-  -c:v libx264 \
-  -y ~/vid_output.mp4
+#valgrind --tool=callgrind ${CUR_PATH}/imf_fs ${CPL} ${ASSETMAP} > /dev/null
+#exit 1
+
+# write to file test
+#${CUR_PATH}/imf_fs ${CPL} ${ASSETMAP} > ~/x.nut
+#ffmpeg -i ~/x.nut -f mp4 -y ~/winhome/Downloads/x.mp4
+#rm ~/x.nut
+
+#piping test
+${CUR_PATH}/imf_fs ${CPL} ${ASSETMAP} | ffmpeg -i - -f mp4 -y ~/winhome/Downloads/xpipe.mp4
+#valgrind --leak-check=full ${CUR_PATH}/imf_fs ${CPL} ${ASSETMAP} > /dev/null

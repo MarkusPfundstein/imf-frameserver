@@ -19,6 +19,105 @@ static int get_int(xmlNode *n) {
     return atoi(t);
 }
 
+static fraction_t get_fraction(xmlNode *n) {
+    fraction_t f = { 0 };
+    char *sr = strdup(get_text(n));
+    char *t = strsep(&sr, "/");
+    if (t) {
+        f.num = atoi(t);
+    }
+    t = strsep(&sr, "/");
+    if (t) {
+        f.denom = atoi(t);
+    }
+    free(sr);
+
+    return f;
+}
+
+static cpl_wave_pcm_descriptor *cpl_wave_pcm_descriptor_from_xml_node(xmlNode *node) {
+    if (!node) {
+        return NULL;
+    }
+
+    cpl_wave_pcm_descriptor *res = (cpl_wave_pcm_descriptor*)malloc(sizeof(cpl_wave_pcm_descriptor));
+    memset(res, 0, sizeof(cpl_wave_pcm_descriptor));
+
+    for (xmlNode *el = node->children; el != NULL; el = el->next) {
+        if (el->type == XML_ELEMENT_NODE) {
+            if (has_key(el, "ChannelAssignment")) {
+                strcpy(res->channel_assignment, get_text(el));
+            }
+            if (has_key(el, "AverageBytesPerSecond")) {
+                res->average_bytes_per_second = get_int(el);
+            }
+            if (has_key(el, "BlockAlign")) {
+                res->block_align = get_int(el);
+            }
+            if (has_key(el, "ReferenceImageEditRate")) {
+                res->reference_image_edit_rate = get_fraction(el);
+            }
+            if (has_key(el, "ChannelCount")) {
+                res->channel_count = get_int(el);
+            }
+            if (has_key(el, "QuantizationBits")) {
+                res->quantization_bits = get_int(el);
+            }
+            if (has_key(el, "AudioSampleRate")) {
+                res->audio_sample_rate = get_fraction(el);
+            }
+            if (has_key(el, "SoundCompression")) {
+                strcpy(res->sound_compression, get_text(el));
+            }
+            if (has_key(el, "EssenceLength")) {
+                res->essence_length = get_int(el);
+            }
+            if (has_key(el, "SampleRate")) {
+                res->sample_rate = get_fraction(el);
+            }
+            if (has_key(el, "ContainerFormat")) {
+                strcpy(res->container_format, get_text(el));
+            }
+            if (has_key(el, "InstanceID")) {
+                strcpy(res->instance_id, get_text(el));
+            }
+        }
+    }
+
+    return res;
+}
+
+static cpl_cdci_descriptor *cpl_cdci_descriptor_from_xml_node(xmlNode *node) {
+    if (!node) {
+        return NULL;
+    }
+
+    cpl_cdci_descriptor *res = (cpl_cdci_descriptor*)malloc(sizeof(cpl_cdci_descriptor));
+    memset(res, 0, sizeof(cpl_cdci_descriptor));
+
+    for (xmlNode *el = node->children; el != NULL; el = el->next) {
+        if (el->type == XML_ELEMENT_NODE) {
+            if (has_key(el, "VerticalSubsampling")) {
+                res->vertical_subsampling = get_int(el);
+            }
+            if (has_key(el, "HorizontalSubsampling")) {
+                res->horizontal_subsampling = get_int(el);
+            }
+            if (has_key(el, "StoredWidth")) {
+                res->stored_width = get_int(el);
+            }
+            if (has_key(el, "StoredHeight")) {
+                res->stored_height = get_int(el);
+            }
+            if (has_key(el, "SampleRate")) {
+                res->sample_rate = get_fraction(el);
+            }
+        }
+    }
+
+    return res;
+}
+
 static am_chunk_t* am_chunk_from_xml_node(xmlNode *node) {
     if (!node) {
         return NULL;
@@ -161,6 +260,45 @@ extern void cpl_free_resources(linked_list_t *ll) {
         free(head);
     }
 }
+
+cpl_cdci_descriptor* cpl_get_cdci_descriptor_for_resource(const char *filename, cpl_resource_t *resource) {
+    // need to use local names because of namespace shizzle
+    const char *query_s = "//*[local-name()='EssenceDescriptor'][*[local-name()='Id']='";
+    const char *query_e = "']/*[local-name()='CDCIDescriptor']";
+
+    char xpath[1024];
+    strcpy(xpath, query_s);
+    strcat(xpath, resource->source_encoding);
+    strcat(xpath, query_e);
+
+    linked_list_t *ll = collect_xpath_results(filename, xpath, (collect_func_t)cpl_cdci_descriptor_from_xml_node);
+    if (!ll) {
+        return NULL;
+    }
+    void *user_data = ll->user_data;
+    free(ll);
+    return user_data;
+}
+
+cpl_wave_pcm_descriptor *cpl_get_wave_pcm_descriptor_for_resource(const char *filename, cpl_resource_t *resource) {
+    // need to use local names because of namespace shizzle
+    const char *query_s = "//*[local-name()='EssenceDescriptor'][*[local-name()='Id']='";
+    const char *query_e = "']/*[local-name()='WAVEPCMDescriptor']";
+
+    char xpath[1024];
+    strcpy(xpath, query_s);
+    strcat(xpath, resource->source_encoding);
+    strcat(xpath, query_e);
+
+    linked_list_t *ll = collect_xpath_results(filename, xpath, (collect_func_t)cpl_wave_pcm_descriptor_from_xml_node);
+    if (!ll) {
+        return NULL;
+    }
+    void *user_data = ll->user_data;
+    free(ll);
+    return user_data;
+}
+
 
 am_chunk_t* am_get_chunk_for_resource(const char *filename, cpl_resource_t *resource) {
 

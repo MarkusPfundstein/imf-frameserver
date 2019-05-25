@@ -30,6 +30,7 @@ if [ ! -e third_party/openssl/include/openssl ]; then
   ./config no-asm no-tests shared --prefix=${ROOT_DIR}/third_party/openssl
   make
   make install
+  make clean
 else
   echo "openssl already installed"
 fi
@@ -46,9 +47,12 @@ if [ ! -e third_party/asdcplib/include/ ]; then
   ./configure --enable-freedist --enable-as-02 --enable-dev-headers --prefix=${ROOT_DIR}/third_party/asdcplib --with-openssl=${ROOT_DIR}/third_party/openssl
   make
   make install
+  make clean
 else
   echo "asdcplib already installed"
 fi
+
+cd $ROOT_DIR
 
 # -------- libxml2 ----------
 if [ ! -e third_party/libxml2/include ]; then
@@ -59,6 +63,24 @@ if [ ! -e third_party/libxml2/include ]; then
   ./configure --prefix=${ROOT_DIR}/third_party/libxml2
   make
   make install
+  make clean
 else
   echo "libxml2 already installed"
+fi
+
+cd $ROOT_DIR
+
+# -------- ffmpeg libs -------
+if [ ! -e third_party/ffmpeg/include ]; then
+    echo "install ffmpeg libs"
+    mkdir -p third_party/ffmpeg
+    
+    cd FFmpeg
+    #./configure --prefix=${ROOT_DIR}/third_party/ffmpeg --disable-everything --disable-x86asm --enable-encoder=r210 --enable-muxer=nut --enable-encoder=pcm --enable-protocol=pipe
+    ./configure --prefix=${ROOT_DIR}/third_party/ffmpeg --disable-x86asm 
+    make
+    make install
+    make clean
+else
+    echo "ffmpeg libs already installed"
 fi
