@@ -34,7 +34,7 @@ Ubuntu (WSL)
 
 ```
 CUR_PATH=$(pwd)
-IMF_ENC=$CUR_PATH/imf_fs
+IMF_ENC=${CUR_PATH}/imf_fs
 
 # we need to be in IMF directory for relative path resolve to work (to be fixed)
 cd ~/bs500a-dalet-a-ov
