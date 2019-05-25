@@ -1,32 +1,34 @@
-WIP project for IMF Frameserver 
+# WIP project for IMF Frameserver 
 
-Goals: parse interoperable master format CPL & OPL and serve jpeg2000 frames transformed by OPL macros
+##Goals
 
-- This is a WIP! Contains quite some shortcuts and unsecure code (e.g. strcpy). Please use with caution :-)
+Open Source Program to decode Interoperable Master Format (IMF) CPL & OPL into raw audio and video so that we can pipe it into ffmpeg or other processors
 
-*Features so far*
+**This is a WIP! Contains quite some shortcuts and unsecure code (e.g. strcpy). Please use with caution :-)**
+
+## Features so far
 
 - take CPL & ASSETMAP as input and output .nut file with r210 10-bit RGB444 and pcms24le
 - supports multiple segments with start points and repeat counts
 - output can be piped into ffmpeg to produce whatever you want
 
-*Drawbacks*
+## Drawbacks
 
 - only CDCI yet
 - audio only wav s24le
 - only .nut pipe output
 - so far only tested on MrMXF bs500a IMF package (cdci, 25fps, 48000hz aud) (http://imf-mm-api.cloud/media/bs500/delivery/bs500a-dalet-a-ov.zip). Required thus more testing (e.g. with broadcast framerates such as 23.97)
 - running it still a bit clumsy
+- compiles under Ubuntu (nothing else tested)
 
-*Install*
+## Install
 
-(Ubuntu (WSL) & OSX)
-- apt install libtool, automake, autoconf, cmake (or brew)
+Ubuntu (WSL)
+- apt install libtool, automake, autoconf, cmake
 - run sh install-deps.sh
 - run make
-- set LD_LIBRARY_PATH correctly (see test.sh)
 
-*Run it*
+## Run it
 
 (see test.sh)
 
@@ -43,15 +45,10 @@ ASSETMAP=ASSETMAP.xml
 # hack
 export LD_LIBRARY_PATH=${CUR_PATH}/third_party/openssl/lib
 
-#write to file
-#${IMF_ENC} ${CPL} ${ASSETMAP} > ~/x.nut
-#ffmpeg -i ~/x.nut -f mp4 -y ~/x.mp4
-#rm ~/x.nut
-
 #direct piping
 ${IMF_ENC} ${CPL} ${ASSETMAP} | ffmpeg -i - -f mp4 -y ~/xpipe.mp4
 ```
 
-*License*
+## License
 
 GPL (like ffmpeg)
