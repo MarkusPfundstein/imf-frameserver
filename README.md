@@ -1,6 +1,6 @@
 # WIP project for IMF Frameserver 
 
-##Goals
+## Goal
 
 Open Source Program to decode Interoperable Master Format (IMF) CPL & OPL into raw audio and video so that we can pipe it into ffmpeg or other processors
 
@@ -17,7 +17,7 @@ Open Source Program to decode Interoperable Master Format (IMF) CPL & OPL into r
 - only CDCI yet
 - audio only wav s24le
 - only .nut pipe output
-- so far only tested on MrMXF bs500a IMF package (cdci, 25fps, 48000hz aud) (http://imf-mm-api.cloud/media/bs500/delivery/bs500a-dalet-a-ov.zip). Required thus more testing (e.g. with broadcast framerates such as 23.97)
+- so far only tested on MrMXF bs500a IMF package (cdci, 25fps, 48000hz aud) ([Link](http://imf-mm-api.cloud/media/bs500/delivery/bs500a-dalet-a-ov.zip)). Requires thus more testing (e.g. with broadcast framerates such as 23.97)
 - running it still a bit clumsy
 - compiles under Ubuntu (nothing else tested)
 
