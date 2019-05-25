@@ -18,6 +18,6 @@ export LD_LIBRARY_PATH=${CUR_PATH}/third_party/openssl/lib
 #ffmpeg -i ~/x.nut -f mp4 -y ~/winhome/Downloads/x.mp4
 #rm ~/x.nut
 
- piping test
+#piping test
 ${CUR_PATH}/imf_fs ${CPL} ${ASSETMAP} | ffmpeg -i - -f mp4 -y ~/winhome/Downloads/xpipe.mp4
-
+#valgrind --leak-check=full ${CUR_PATH}/imf_fs ${CPL} ${ASSETMAP} > /dev/null

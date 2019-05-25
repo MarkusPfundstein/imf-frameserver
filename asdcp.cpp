@@ -4,6 +4,7 @@
 #include <AS_02.h>
 #include <WavFileWriter.h>
 #include <cstdlib>
+#include "imf.h"
 
 namespace ASDCP {
     Result_t MD_to_PCM_ADesc(ASDCP::MXF::WaveAudioDescriptor* ADescObj, ASDCP::PCM::AudioDescriptor& ADesc);
@@ -21,7 +22,11 @@ Result_t read_PCM_file(asset_t *asset, asdcp_on_pcm_frame_func on_frame, void *u
     ui32_t last_sample = 0;
     // TO-DO: Figure out correct edit_rate here. probably 25
     // if i make 48000 , callback will be 1 sample (length: 6, L: 3, R: 3)
-    Rational edit_rate = Rational(25, 1);
+    cpl_wave_pcm_descriptor *pcm_desc = (cpl_wave_pcm_descriptor*)asset->essence_descriptor;
+    Rational edit_rate = Rational(
+            pcm_desc->reference_image_edit_rate.num,
+            pcm_desc->reference_image_edit_rate.denom);
+
     ASDCP::MXF::WaveAudioDescriptor *wave_descriptor = 0;
 
     Result_t result = Reader.OpenRead(asset->mxf_path, edit_rate);
@@ -262,7 +267,6 @@ int asdcp_read_video_files(linked_list_t *files, asdcp_on_j2k_frame_func on_fram
         }
     }
 
-    fprintf(stderr, "shutdown frame\n");
     on_frame(NULL, 0, 0, user_data);
 
     return !err;

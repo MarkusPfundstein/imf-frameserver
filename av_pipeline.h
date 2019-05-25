@@ -1,10 +1,10 @@
-#ifndef MXF_DECODE_H
-#define MXF_DECODE_H
+#ifndef AV_PIPELINE_H
+#define AV_PIPELINE_H
 
 #include <libavformat/avformat.h>
 #include "linked_list.h"
 
-typedef struct OutputStream {
+typedef struct {
     AVStream *stream;
     AVCodecContext *codec_context;
     /* pts of the next frame that will be generated */
@@ -17,8 +17,6 @@ typedef struct {
     void *user_data;
     int num_threads;
     int print_debug;
-    int video_out_fd;
-    int audio_out_fd;
     unsigned int decode_frame_buffer_size;
 
     // libav related stuff
@@ -28,10 +26,10 @@ typedef struct {
     AVDictionary *encode_ops;
     AVCodec *video_codec;
     AVCodec *audio_codec;
-} decoding_parameters_t;
+} av_pipeline_context_t;
 
 extern int stop_decoding_signal();
 
-extern int mxf_decode_files(linked_list_t *video_files, linked_list_t *audio_files, decoding_parameters_t *parameters);
+extern int av_pipeline_run(linked_list_t *video_files, linked_list_t *audio_files, av_pipeline_context_t *parameters);
 
 #endif
