@@ -88,51 +88,14 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    const char *video_fifo_path = "/tmp/imf-fs-rgb444.fifo";
-    const char *audio_fifo_path = "/tmp/imf-fs-pcm.fifo";
-
-    if (access(video_fifo_path, F_OK) != -1) {
-        remove(video_fifo_path);
-    }
-
-    if (access(audio_fifo_path, F_OK) != -1) {
-        remove(audio_fifo_path);
-    }
-
-    fprintf(stderr, "create fifo %s\n", video_fifo_path);
-    err = mkfifo(video_fifo_path, 0666);
-    if (err) {
-        fprintf(stderr, "error making %s\n", video_fifo_path);
-        return 1;
-    }
-    fprintf(stderr, "create fifo %s\n", audio_fifo_path);
-    err = mkfifo(audio_fifo_path, 0666);
-    if (err) {
-        fprintf(stderr, "error making %s\n", audio_fifo_path);
-        return 1;
-    }
-
-    usleep(500);
-
-    int video_fd = open(video_fifo_path, O_WRONLY);
-    if (video_fd < 0) {
-        fprintf(stderr, "error opening %s\n", video_fifo_path);
-        return 1;
-    }
-    int audio_fd = open(audio_fifo_path, O_WRONLY);
-    if (audio_fd < 0) {
-        fprintf(stderr, "error opening %s\n", audio_fifo_path);
-        return 1;
-    }
-
     signal(SIGINT, SIGINT_handler);
 
     decoding_parameters_t parameters;
     memset(&parameters, 0, sizeof(decoding_parameters_t));
     parameters.num_threads = opj_get_num_cpus() - 2; 
     parameters.print_debug = 0;
-    parameters.video_out_fd = video_fd;
-    parameters.audio_out_fd = audio_fd;
+    parameters.video_out_fd = STDOUT_FILENO;
+    parameters.audio_out_fd = STDOUT_FILENO;
     parameters.decode_frame_buffer_size = 50;
 
     decoding_assets_t decoding_assets;
@@ -166,9 +129,6 @@ int main(int argc, char **argv) {
 
     ll_free(decoding_assets.video_assets, (free_user_data_func_t)free_asset);
     ll_free(decoding_assets.audio_assets, (free_user_data_func_t)free_asset);
-    
-    close(audio_fd);
-    close(video_fd);
 
     fprintf(stderr, "shutdown imf-fs - bye bye \n");
 

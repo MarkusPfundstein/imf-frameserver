@@ -1,10 +1,10 @@
-LIB_DIRS=-L./third_party/openjpeg/lib -L./third_party/asdcplib/lib -lpthread -L./third_party/openssl/lib -L./third_party/libxml2/lib
-INCLUDES=-I./third_party/openjpeg/include -I./third_party/asdcplib/include -I./third_party/libxml2/include/libxml2
-COMP_FLAGS=-O3 -DNDEBUG
-LINK_FLAGS=-O3 -DNDEBUG
+LIB_DIRS=-L./third_party/openjpeg/lib -L./third_party/asdcplib/lib -lpthread -L./third_party/openssl/lib -L./third_party/libxml2/lib -L./third_party/ffmpeg/lib
+INCLUDES=-I./third_party/openjpeg/include -I./third_party/asdcplib/include -I./third_party/libxml2/include/libxml2 -I./third_party/ffmpeg/include
+COMP_FLAGS=-fno-omit-frame-pointer#-O3 -DNDEBUG
+LINK_FLAGS=-fno-omit-frame-pointer#-O3 -DNDEBUG
 
 #to-do: get lssl and lcrypto to link statically -> want to avoid LD_LIBRARY_PATH stuff before running the executable
-LIBS=-Wl,-Bstatic -lopenjp2 -lasdcp -las02 -lkumu -lxml2 -Wl,-Bdynamic -lssl -lcrypto 
+LIBS=-Wl,-Bstatic -lopenjp2 -lasdcp -las02 -lkumu -lxml2 -lavformat -lavcodec -lswscale -lswresample -lavutil -Wl,-Bdynamic -lssl -lcrypto
 OBJS=main.o color.o linked_list.o asdcp.o mxf_decode.o imf.o
 
 # to-do: fix linking of asdcplib so that we can link with gcc

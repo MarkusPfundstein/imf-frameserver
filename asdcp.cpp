@@ -20,7 +20,8 @@ Result_t read_PCM_file(asset_t *asset, asdcp_on_pcm_frame_func on_frame, void *u
     PCM::FrameBuffer FrameBuffer;
     ui32_t last_sample = 0;
     // TO-DO: Figure out correct edit_rate here. probably 25
-    Rational edit_rate = Rational(24, 1);
+    // if i make 48000 , callback will be 1 sample (length: 6, L: 3, R: 3)
+    Rational edit_rate = Rational(25, 1);
     ASDCP::MXF::WaveAudioDescriptor *wave_descriptor = 0;
 
     Result_t result = Reader.OpenRead(asset->mxf_path, edit_rate);
