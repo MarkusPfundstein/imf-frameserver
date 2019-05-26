@@ -3,6 +3,7 @@
 
 #include <libavformat/avformat.h>
 #include "linked_list.h"
+#include "imf.h"
 
 typedef struct {
     AVStream *stream;
@@ -13,7 +14,7 @@ typedef struct {
     AVFrame *frame;
 } OutputStream;
 
-typedef struct {
+typedef struct av_pipeline_context_s {
     void *user_data;
     int num_threads;
     int print_debug;
@@ -26,6 +27,9 @@ typedef struct {
     AVDictionary *encode_ops;
     AVCodec *video_codec;
     AVCodec *audio_codec;
+
+    // cpl related stuff
+    cpl_composition_playlist *cpl;
 } av_pipeline_context_t;
 
 extern int stop_decoding_signal();

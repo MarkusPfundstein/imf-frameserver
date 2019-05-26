@@ -19,20 +19,47 @@ static int get_int(xmlNode *n) {
     return atoi(t);
 }
 
-static fraction_t get_fraction(xmlNode *n) {
+static fraction_t get_fraction_delim(xmlNode *n, const char* delim) {
     fraction_t f = { 0 };
     char *sr = strdup(get_text(n));
-    char *t = strsep(&sr, "/");
+    char *t = strsep(&sr, delim);
     if (t) {
         f.num = atoi(t);
     }
-    t = strsep(&sr, "/");
+    t = strsep(&sr, delim);
     if (t) {
         f.denom = atoi(t);
     }
     free(sr);
 
     return f;
+}
+
+static fraction_t get_fraction_slash(xmlNode *n) {
+    return get_fraction_delim(n, "/");
+}
+
+static fraction_t get_fraction_ws(xmlNode *n) {
+    return get_fraction_delim(n, " ");
+}
+
+static cpl_composition_playlist* cpl_compositon_playlist_from_node(xmlNode *node) {
+    if (!node) {
+        return NULL;
+    }
+
+    cpl_composition_playlist *res = (cpl_composition_playlist*)malloc(sizeof(cpl_composition_playlist));
+    memset(res, 0, sizeof(cpl_composition_playlist));
+
+    for (xmlNode *el = node->children; el != NULL; el = el->next) {
+        if (el->type == XML_ELEMENT_NODE) {
+            if (has_key(el, "EditRate")) {
+                res->edit_rate = get_fraction_ws(el);
+            }
+        }
+    }
+
+    return res;
 }
 
 static cpl_wave_pcm_descriptor *cpl_wave_pcm_descriptor_from_xml_node(xmlNode *node) {
@@ -55,7 +82,7 @@ static cpl_wave_pcm_descriptor *cpl_wave_pcm_descriptor_from_xml_node(xmlNode *n
                 res->block_align = get_int(el);
             }
             if (has_key(el, "ReferenceImageEditRate")) {
-                res->reference_image_edit_rate = get_fraction(el);
+                res->reference_image_edit_rate = get_fraction_slash(el);
             }
             if (has_key(el, "ChannelCount")) {
                 res->channel_count = get_int(el);
@@ -64,7 +91,7 @@ static cpl_wave_pcm_descriptor *cpl_wave_pcm_descriptor_from_xml_node(xmlNode *n
                 res->quantization_bits = get_int(el);
             }
             if (has_key(el, "AudioSampleRate")) {
-                res->audio_sample_rate = get_fraction(el);
+                res->audio_sample_rate = get_fraction_slash(el);
             }
             if (has_key(el, "SoundCompression")) {
                 strcpy(res->sound_compression, get_text(el));
@@ -73,7 +100,7 @@ static cpl_wave_pcm_descriptor *cpl_wave_pcm_descriptor_from_xml_node(xmlNode *n
                 res->essence_length = get_int(el);
             }
             if (has_key(el, "SampleRate")) {
-                res->sample_rate = get_fraction(el);
+                res->sample_rate = get_fraction_slash(el);
             }
             if (has_key(el, "ContainerFormat")) {
                 strcpy(res->container_format, get_text(el));
@@ -110,7 +137,7 @@ static cpl_cdci_descriptor *cpl_cdci_descriptor_from_xml_node(xmlNode *node) {
                 res->stored_height = get_int(el);
             }
             if (has_key(el, "SampleRate")) {
-                res->sample_rate = get_fraction(el);
+                res->sample_rate = get_fraction_slash(el);
             }
         }
     }
@@ -163,6 +190,7 @@ static cpl_resource_t* cpl_resource_from_xml_node(xmlNode *node) {
                 strcpy(res->id, get_text(el));
             }
             else if (has_key(el, "EditRate")) {
+                res->edit_rate = get_fraction_ws(el);
             }
             else if (has_key(el, "IntrinsicDuration")) {
                 res->intrinsic_duration = get_int(el);
@@ -299,6 +327,15 @@ cpl_wave_pcm_descriptor *cpl_get_wave_pcm_descriptor_for_resource(const char *fi
     return user_data;
 }
 
+cpl_composition_playlist* cpl_get_composition_playlist(const char *filename) {
+    linked_list_t * ll = collect_xpath_results(filename, "//cpl:CompositionPlaylist", (collect_func_t)cpl_compositon_playlist_from_node);
+    if (!ll) {
+        return NULL;
+    }
+    void *user_data = ll->user_data;
+    free(ll);
+    return user_data;
+}
 
 am_chunk_t* am_get_chunk_for_resource(const char *filename, cpl_resource_t *resource) {
 

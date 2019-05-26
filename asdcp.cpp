@@ -4,6 +4,7 @@
 #include <AS_02.h>
 #include <WavFileWriter.h>
 #include <cstdlib>
+#include "av_pipeline.h"
 #include "imf.h"
 
 namespace ASDCP {
@@ -14,7 +15,7 @@ using namespace ASDCP;
 
 const ui32_t FRAME_BUFFER_SIZE = 4 * Kumu::Megabyte;
 
-Result_t read_PCM_file(asset_t *asset, asdcp_on_pcm_frame_func on_frame, void *user_data) {
+Result_t read_PCM_file(asset_t *asset, av_pipeline_context_t *av_context, asdcp_on_pcm_frame_func on_frame, void *user_data) {
     AESDecContext* Context = 0;
     HMACContext* HMAC = 0;
     AS_02::PCM::MXFReader Reader;
@@ -22,10 +23,9 @@ Result_t read_PCM_file(asset_t *asset, asdcp_on_pcm_frame_func on_frame, void *u
     ui32_t last_sample = 0;
     // TO-DO: Figure out correct edit_rate here. probably 25
     // if i make 48000 , callback will be 1 sample (length: 6, L: 3, R: 3)
-    cpl_wave_pcm_descriptor *pcm_desc = (cpl_wave_pcm_descriptor*)asset->essence_descriptor;
     Rational edit_rate = Rational(
-            pcm_desc->reference_image_edit_rate.num,
-            pcm_desc->reference_image_edit_rate.denom);
+            av_context->cpl->edit_rate.num,
+            av_context->cpl->edit_rate.denom);
 
     ASDCP::MXF::WaveAudioDescriptor *wave_descriptor = 0;
 
@@ -216,7 +216,7 @@ Result_t read_JP2K_file(asset_t *asset, asdcp_on_j2k_frame_func on_frame, void *
     return result;
 }
 
-int asdcp_read_audio_files(linked_list_t *files, asdcp_on_pcm_frame_func on_frame, void *user_data) { int err = 0;
+int asdcp_read_audio_files(linked_list_t *files, av_pipeline_context_t *av_context, asdcp_on_pcm_frame_func on_frame, void *user_data) { int err = 0;
 
     for (linked_list_t *c = files; !err && c; c = c->next) {
         EssenceType_t essenceType;
@@ -232,7 +232,7 @@ int asdcp_read_audio_files(linked_list_t *files, asdcp_on_pcm_frame_func on_fram
             err = 1;
             break;
         }
-        result = read_PCM_file(asset, on_frame, user_data);
+        result = read_PCM_file(asset, av_context, on_frame, user_data);
         if (!ASDCP_SUCCESS(result)) {
             err = 1;
             break;
@@ -243,7 +243,7 @@ int asdcp_read_audio_files(linked_list_t *files, asdcp_on_pcm_frame_func on_fram
     return !err;
 }
 
-int asdcp_read_video_files(linked_list_t *files, asdcp_on_j2k_frame_func on_frame, void *user_data) {
+int asdcp_read_video_files(linked_list_t *files, av_pipeline_context_t *av_context, asdcp_on_j2k_frame_func on_frame, void *user_data) {
     int err = 0;
 
     for (linked_list_t *c = files; !err && c; c = c->next) {

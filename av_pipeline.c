@@ -507,7 +507,7 @@ void* extract_audio_thread(void *data) {
     audio_thread_args_t *args = data;
     linked_list_t *files = args->files;
     av_pipeline_context_t *av_context = args->av_context;
-    int err = asdcp_read_audio_files(files, encode_pcm24le_audio, av_context);
+    int err = asdcp_read_audio_files(files, av_context, encode_pcm24le_audio, av_context);
     if (err && !keep_running) {
         fprintf(stderr, "error audio thread\n");
         stop_decoding_signal();
@@ -611,6 +611,13 @@ int init_audio_output(av_pipeline_context_t *av_context, asset_t *asset) {
     AVCodecContext *c = av_context->audio_stream.codec_context;
     OutputStream *ost = &av_context->audio_stream;
 
+    cpl_composition_playlist *cpl = av_context->cpl;
+    if (!cpl) {
+        fprintf(stderr, "no cpl\n");
+        err = 1;
+        goto err_and_out;
+    }
+
     cpl_wave_pcm_descriptor *pcm_desc = asset->essence_descriptor;
     if (!pcm_desc) {
         fprintf(stderr, "no pcm descriptor\n");
@@ -644,7 +651,7 @@ int init_audio_output(av_pipeline_context_t *av_context, asset_t *asset) {
     ost->frame->channel_layout = c->channel_layout;
     ost->frame->sample_rate = c->sample_rate;
     // TO-DO: CHECK IF THIS CALC IS CORRECT. WORKS FOR 25 fps
-    float fps = (float)pcm_desc->reference_image_edit_rate.num / (float)pcm_desc->reference_image_edit_rate.denom;
+    float fps = (float)cpl->edit_rate.num / (float)cpl->edit_rate.denom;
     // or ceil?
     int nb_samples = floor(pcm_desc->average_bytes_per_second / (fps * pcm_desc->block_align));
     ost->frame->nb_samples = nb_samples;
@@ -688,19 +695,26 @@ int init_video_output(av_pipeline_context_t *av_context, asset_t *asset) {
         goto err_and_out;
     }
 
+    cpl_composition_playlist *cpl = av_context->cpl;
+    if (!cpl) {
+        fprintf(stderr, "no cpl\n");
+        averr = 1;
+        goto err_and_out;
+    }
+
     cpl_cdci_descriptor *cdci_desc = NULL;
     cpl_rgba_descriptor *rgba_desc = NULL;
 
+    fraction_t edit_rate = cpl->edit_rate;
+
     int stored_width;
     int stored_height;
-    fraction_t sample_rate;
     float fps;
     if (asset->picture_type == PICTURE_TYPE_CDCI) {
         cdci_desc = asset->essence_descriptor;
         stored_width = cdci_desc->stored_width;
         stored_height = cdci_desc->stored_height;
-        sample_rate = cdci_desc->sample_rate;
-        fps = (float)sample_rate.num / (float)sample_rate.denom;
+        fps = (float)edit_rate.num / (float)edit_rate.denom;
     } else if (asset->picture_type == PICTURE_TYPE_RGBA) {
         //rgba_desc = asset->essence_descriptor;
     }
@@ -710,7 +724,7 @@ int init_video_output(av_pipeline_context_t *av_context, asset_t *asset) {
         goto err_and_out;
     }
 
-    fprintf(stderr, "init with w: %d, h: %d, r: %d/%d, fps: %f\n", stored_width, stored_height, sample_rate.num, sample_rate.denom, fps);
+    fprintf(stderr, "init with w: %d, h: %d, r: %d/%d, fps: %f\n", stored_width, stored_height, edit_rate.num, edit_rate.denom, fps);
 
     av_context->video_stream.codec_context->codec_id = AV_CODEC_ID_R210;
     // TODO: get this from CPL
@@ -720,7 +734,7 @@ int init_video_output(av_pipeline_context_t *av_context, asset_t *asset) {
     av_context->video_stream.stream->time_base = (AVRational){ 1, fps };
     av_context->video_stream.codec_context->time_base = av_context->video_stream.stream->time_base;
     // set framerate
-    av_context->format_context->streams[0]->r_frame_rate = (AVRational){ sample_rate.num, sample_rate.denom};
+    av_context->format_context->streams[0]->r_frame_rate = (AVRational){ edit_rate.num, edit_rate.denom};
     av_context->video_stream.codec_context->pix_fmt = AV_PIX_FMT_GBRP10;
 
     // allocate codec
@@ -843,7 +857,7 @@ int av_pipeline_run(linked_list_t *video_files, linked_list_t *audio_files, av_p
     pthread_create(&extract_audio_thread_id, NULL, extract_audio_thread, &audio_thread_args);
     
     // start decoding pipeline    
-    err = asdcp_read_video_files(video_files, on_jpeg2000_frame, av_context);
+    err = asdcp_read_video_files(video_files, av_context, on_jpeg2000_frame, av_context);
 
     pthread_join(extract_audio_thread_id, NULL);
     fprintf(stderr, "extract_audio done\n");

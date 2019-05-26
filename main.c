@@ -129,6 +129,12 @@ int main(int argc, char **argv) {
     decoding_assets_t decoding_assets;
     memset(&decoding_assets, 0, sizeof(decoding_assets_t));
 
+    cpl_composition_playlist* cpl = cpl_get_composition_playlist(argv[1]);
+    if (!cpl) {
+        fprintf(stderr, "couldn't get cpl from %s\n", argv[1]);
+        return 1;
+    }
+
     err = get_video_assets(argv[1], argv[2], &decoding_assets);
     if (err) {
         fprintf(stderr, "error getting video assets from CPL\n");
@@ -139,6 +145,9 @@ int main(int argc, char **argv) {
         fprintf(stderr, "error getting audio assets from CPL\n");
         return 1;
     }
+
+    fprintf(stderr, "loaded CPL:\n");
+    fprintf(stderr, "\tEditRate:\t\t%d/%d\n", cpl->edit_rate.num, cpl->edit_rate.denom);
 
     fprintf(stderr, "loaded resources:\n");
     fprintf(stderr, "VIDEO\n");
@@ -162,7 +171,6 @@ int main(int argc, char **argv) {
         cpl_wave_pcm_descriptor *desc = asset->essence_descriptor;
         fprintf(stderr, "\t\tWAVE_PCM\n");
         fprintf(stderr, "\t\tAverageBytesPerSecond\t\t%d\n", desc->average_bytes_per_second);
-        fprintf(stderr, "\t\tReferenceImageEditRate\t%d/%d\n", desc->reference_image_edit_rate.num, desc->reference_image_edit_rate.denom);
         fprintf(stderr, "\t\tBlockAlign\t\t\t%d\n", desc->block_align);
         fprintf(stderr, "\t\tChannelCount\t\t\t%d\n", desc->channel_count);
         fprintf(stderr, "\t\tQuantizationBits\t\t%d\n", desc->quantization_bits);
@@ -170,10 +178,13 @@ int main(int argc, char **argv) {
 
     }
 
+    av_context.cpl = cpl;
+
     err = av_pipeline_run(decoding_assets.video_assets, decoding_assets.audio_assets, &av_context);
 
     ll_free(decoding_assets.video_assets, (free_user_data_func_t)free_asset);
     ll_free(decoding_assets.audio_assets, (free_user_data_func_t)free_asset);
+    free(cpl);
 
     fprintf(stderr, "shutdown imf-fs - bye bye \n");
 

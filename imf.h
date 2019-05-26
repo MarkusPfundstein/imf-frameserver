@@ -8,6 +8,10 @@ typedef struct {
     int denom;
 } fraction_t;
 
+typedef struct {
+    fraction_t edit_rate;
+} cpl_composition_playlist;
+
 // EssenceDescriptor->WavePCMDescriptor
 typedef struct {
     char channel_assignment[64];
@@ -68,7 +72,7 @@ typedef struct {
 
 typedef struct {
     char id[64];
-    fraction_t edit_rate; // not parsed yet
+    fraction_t edit_rate;
     unsigned int intrinsic_duration;
     unsigned int entry_point;
     unsigned int source_duration;
@@ -84,13 +88,13 @@ typedef struct {
     int length;
 } am_chunk_t;
 
+extern cpl_composition_playlist* cpl_get_composition_playlist(const char *filename);
 extern cpl_cdci_descriptor* cpl_get_cdci_descriptor_for_resource(const char *filename, cpl_resource_t *resource);
 extern cpl_wave_pcm_descriptor* cpl_get_wave_pcm_descriptor_for_resource(const char *filename, cpl_resource_t *resource);
 extern am_chunk_t* am_get_chunk_for_resource(const char *filename, cpl_resource_t *resource);
 extern void am_free_chunk(am_chunk_t *chunk);
 extern linked_list_t* cpl_get_video_resources(const char *filename);
 extern linked_list_t* cpl_get_audio_resources(const char *filename);
-
 extern void cpl_free_resources(linked_list_t *resources);
 
 #endif
