@@ -14,12 +14,12 @@ Open Source Program to decode Interoperable Master Format (IMF) CPL & OPL into r
 
 ## Drawbacks
 
-- only CDCI yet
+- only CDCI(YUV422) yet, RGBA coming soon, color problems with YUV444
 - audio only wav s24le
 - only .nut pipe output
-- so far only tested on MrMXF bs500a IMF package (cdci, 25fps, 48000hz aud) ([Link](http://imf-mm-api.cloud/media/bs500/delivery/bs500a-dalet-a-ov.zip)). Requires thus more testing (e.g. with broadcast framerates such as 23.97)
-- running it still a bit clumsy
-- compiles under Ubuntu (nothing else tested)
+- Not tested yet on content with broadcast framerates such as 23.97
+- running it still a bit clumsy (see test.sh)
+- might only compile under Ubuntu (nothing else tested)
 
 ## Install
 
