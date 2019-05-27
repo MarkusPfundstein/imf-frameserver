@@ -273,11 +273,11 @@ linked_list_t* collect_xpath_results(const char* filename, const char *xpath, co
 }
 
 linked_list_t* cpl_get_video_resources(const char* filename) {
-    return collect_xpath_results(filename, "//cc:MainImageSequence//cpl:Resource", (collect_func_t)cpl_resource_from_xml_node);
+    return collect_xpath_results(filename, "//*[local-name()='MainImageSequence']//*[local-name()='Resource']", (collect_func_t)cpl_resource_from_xml_node);
 }
 
 linked_list_t* cpl_get_audio_resources(const char* filename) {
-    return collect_xpath_results(filename, "//cc:MainAudioSequence//cpl:Resource", (collect_func_t)cpl_resource_from_xml_node);
+    return collect_xpath_results(filename, "//*[local-name()='MainAudioSequence']//*[local-name()='Resource']", (collect_func_t)cpl_resource_from_xml_node);
 }
 
 extern void cpl_free_resources(linked_list_t *ll) {
@@ -328,7 +328,7 @@ cpl_wave_pcm_descriptor *cpl_get_wave_pcm_descriptor_for_resource(const char *fi
 }
 
 cpl_composition_playlist* cpl_get_composition_playlist(const char *filename) {
-    linked_list_t * ll = collect_xpath_results(filename, "//cpl:CompositionPlaylist", (collect_func_t)cpl_compositon_playlist_from_node);
+    linked_list_t * ll = collect_xpath_results(filename, "//*[local-name()='CompositionPlaylist']", (collect_func_t)cpl_compositon_playlist_from_node);
     if (!ll) {
         return NULL;
     }
